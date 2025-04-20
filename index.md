@@ -1,4 +1,3 @@
 ---
-title: Welcome to my blog
+title: Prasenjit's Technical Blog
 ---
-# Welcome to Prasenjit's Technical Blog
