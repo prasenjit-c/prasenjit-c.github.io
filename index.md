@@ -1,3 +1,3 @@
 ---
-title: Prasenjit's Technical Blog
+title: TB_INDEX
 ---
