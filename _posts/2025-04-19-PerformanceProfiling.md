@@ -13,3 +13,4 @@ Welcome to this multi-part blog series exploring the details and performance of 
 The blog is divided into four parts, with Part 1 serving as the foundation. Based on your expertise and familiarity with the topics, feel free to either start from the beginning or navigate directly to the sections most relevant to you.
 
 I hope you find this series insightful and engaging! Your feedback and comments are always welcome.
+[Part1 - ](https://prasenjit-c.github.io/_posts/hbm-nvidia-part1.md)
