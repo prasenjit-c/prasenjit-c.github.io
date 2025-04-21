@@ -1,6 +1,8 @@
 ---
+layout: post
 title: "Deep Dive on HBM Performance of NVIDIA GPUs"
 date: 2025-04-19
+categories: jekyll update
 ---
 Welcome to this multi-part blog series exploring the details and performance of High Bandwidth Memory (HBM) as employed in NVIDIA GPUs. This is a technical deep dive, starting from the fundamentals of NVIDIA GPU memory architectures and progressing to an analysis of how modern AI and ML applications leverage HBM for optimal performance. Whether you're a newcomer curious about GPU memory, an experienced professional optimizing HBM performance, or a visionary architect designing next-generation systems, you'll find valuable insights here. The content aims to address:
 
