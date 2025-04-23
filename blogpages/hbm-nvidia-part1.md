@@ -62,9 +62,9 @@ Next, let's analyze the instruction statistics. The profiler reports approximate
 
 We can verify this FMA count against our kernel's intended operation and input data size. Our kernel processes two arrays, X and Y, each allocated with 0.5 MB of memory. Assuming each element is a 4-byte single-precision floating-point number (float), we can calculate the number of elements in one array:
 
-* Array Size = 0.5 MB = 512 KB = $512 \times 1024$ bytes = 524,288 bytes
+* Array Size = 0.5 MB = 512 KB = 512 * 1024 bytes = 524,288 bytes
 * Size of Element (float) = 4 bytes
-* Number of Elements = Array Size / Size of Element = 524,288 bytes / 4 bytes/element = 131,072 elements
+* Number of Elements = Array Size / Size of Element = 524,288 bytes / 4 bytes = 131,072 elements
 * Expected FMA Operations = Number of Elements = 131,072
 
 This calculated value precisely matches the 131,072 FMA instructions reported by Nsight Compute's Instruction Statistics section, validating our understanding of the kernel's execution behavior and the profiler's output.
@@ -86,7 +86,7 @@ To accurately evaluate the effectiveness of the L1 cache, particularly its hit r
 
 A write-through cache policy means that whenever a store operation writes data to the L1 cache, that data is simultaneously (or very shortly thereafter) written to the next level of the memory hierarchy, which is usually the L2 cache.
 This policy can sometimes lead to confusing interpretations of profiler metrics related to store operations:
-* L1 Store "Hits": A profiler might report a very high (even 100%) L1 hit rate for global store operations. This often signifies that the L1 cache successfully accepted the write request.
+* L1 Store Hits: A profiler might report a very high (even 100%) L1 hit rate for global store operations. This often signifies that the L1 cache successfully accepted the write request.
 * L2 Traffic from Stores: Concurrently, because the write must propagate to L2 due to the write-through policy, these same store operations will generate traffic (transactions) between L1 and L2. The profiler might report these L1-to-L2 transactions in a way that appears as "L2 Misses" or increased L2 traffic originating from L1 stores.
 
 It might seem contradictory for a store to be an L1 "hit" while also causing an L1-to-L2 transaction (sometimes logged confusingly). This stems directly from the write-through mechanism: the L1 accepts the write (hit) but does not retain sole ownership; the data must proceed to L2.
@@ -99,8 +99,8 @@ This calculation aligns with the data and reflects the efficiency of L1 cache ut
 
 Moving further down the memory hierarchy, we examine the L2 cache statistics to understand its role in servicing memory requests that missed the L1 cache. Key columns to examine in this analysis are Requests, Sectors and Sectors/Request. In NVIDIA GPUs, each cache line is 128 bytes, and these are divided into 4 sectors, each consisting of 32 bytes. Requests between L1 cache, L2 cache and device memory operate at the granularity of a sector. From the profiler, we observe that the total sector misses to device memory amount to 32,770. This indicates that every request reaching L2 and missing there results in an access to device memory.
 ![](/images/hbm-part1-image5.png "L2 Stats")
-The total data transferred between L2 and device memory is calculated as:
-32,769 sectors×32 B/sector=1.05 MB32,769 \, \text{sectors} \times 32 \, \text{B/sector} = 1.05 \, \text{MB}32,769sectors×32B/sector=1.05MB
+The total data transferred between L2 and device memory is calculated as:<br>
+32,769 sectors * 32 B/sector=1.05 MB
 ![](/images/hbm-part1-image6.png "HBM Stats")
 This value closely aligns with the working memory size used in this kernel. You can verify this value further by examining the logical memory diagram displayed in the profiler, which provides a detailed visualization of memory accesses and transfers.
 
@@ -126,7 +126,8 @@ Increasing the number of threads primarily impacts the overall execution time, w
 Examining the L1 metrics, we observe an interesting trend: as the number of threads increases, the number of L1 loads and stores decreases. Moreover, this reduction is proportional to the thread factor. For instance:
 * In the 8-thread run, there are 8 times fewer loads and stores compared to the single-thread run.
 * Similarly, in the 32- and 64-thread runs, there are 32 times fewer loads and stores.
-This reduction highlights the cooperative behavior of threads, where memory is accessed collectively by groups of threads. This phenomenon is technically referred to as global memory coalescing, an essential concept for optimizing performance on NVIDIA GPUs.
+
+This reduction highlights the cooperative behavior of threads, where memory is accessed collectively by groups of threads.This phenomenon is technically referred to as global memory coalescing, an essential concept for optimizing performance on NVIDIA GPUs.
 Another noteworthy observation is that if we divide the number of L1 loads by the FFMA Executed, the result is a factor of 3. This indicates that, at the warp level, each FMA operation requires three loads, aligning with the expected behavior of our program.
 Before diving deeper, let’s expand our understanding of L1 cache lines and sectors:
 * An L1 cache line in NVIDIA GPUs is typically 128 bytes in size.
@@ -136,46 +137,57 @@ Before diving deeper, let’s expand our understanding of L1 cache lines and sec
 Armed with this knowledge, let’s attempt to calculate the L1 loads and stores manually and verify if they match the numbers reported by the NVIDIA profiler.
 To better visualize how threads access data and how coalescing occurs, consider the layout of elements from arrays X and Y relative to the cache structure.
 ![](/images/hbm-part1-image7.png "Strided Access")
-Recall that our data elements are 4-byte single-precision floats, 8 elements fit in a sector, and hence 32 elements fit in a cache line. Let's analyze the memory operations required to process 32 consecutive elements, which corresponds to 32 FMA operations assuming one FMA per element. This workload requires loading data equivalent to one cache line of X, loading one cache line of Y, and storing one cache line of Y. When we increase the number of threads in a warp, the memory access efficiency improves as a single load at the warp level can serve all threads in the warp.
+Recall that our data elements are 4-byte single-precision floats, 8 elements fit in a sector, and hence 32 elements fit in a cache line. Let's analyze the memory operations required to process 32 consecutive elements, which corresponds to 32 FMA operations assuming one FMA per element. This workload requires loading data equivalent to one cache line of X, loading one cache line of Y, and storing one cache line of Y. When we increase the number of threads in a warp, the memory access efficiency improves as a single load at the warp level can serve all threads in the warp.<br>
 **8 threads per warp serving 32 FFMA:**
 * We require 8 loads, one for each sector, multiplied by 2 for X and Y.
-* Additionally, we need 4 stores for Y, corresponding to each sector
+* Additionally, we need 4 stores for Y, corresponding to each sector <br>
 **32 threads per warp serving 32 FFMA:**
 * A single load serves all 32 threads, covering the entire cache line.
 * Only 2 loads (one each for X and Y) and 1 store (for Y) are needed.
 
-We can now scale this analysis to our entire 8 MB dataset comprising 1,048,576 FFMAs.
+We can now scale this analysis to our entire 8 MB dataset comprising 1,048,576 FFMAs.<br>
 1 thread per warp:
 * L1 Loads = 2 x 1,048,576 = 2,097,152
-* L1 Stores = 1 x 1,048,576 = 1,048576
+* L1 Stores = 1 x 1,048,576 = 1,048576<br>
 8 threads per warp:
 * L1 Loads = 8 x (1,048,576/32) = 262,144
-* L1 Stores = 4 x (1,048,576/32) = 131,072
+* L1 Stores = 4 x (1,048,576/32) = 131,072<br>
 32 threads per warp:
 * L1 Loads = 2 x (1,048,576/32) = 65,536
 * L1 Stores = 1 x (1,048,576/32) = 32,768
 
-As you can see, while the stores match perfectly, the loads are slightly off. This discrepancy arises because we overlooked the contribution of the user_arg array. The user_arg array (or variable) exhibits a different access pattern: the same value(s) from it are required by all threads executing within a given warp. When threads within a warp access the exact same memory address, the load operation is performed only once per warp and then efficiently broadcast to all participating threads within that warp. Taking this into account, here is the updated calculation that includes the access to user_arg
+As you can see, while the stores match perfectly, the loads are slightly off. This discrepancy arises because we overlooked the contribution of the user_arg array. The user_arg array (or variable) exhibits a different access pattern: the same value(s) from it are required by all threads executing within a given warp. When threads within a warp access the exact same memory address, the load operation is performed only once per warp and then efficiently broadcast to all participating threads within that warp. Taking this into account, here is the updated calculation that includes the access to user_arg.<br>
 1 thread per warp:
-* L1 Loads = 2,097,152 + 1,048,576
+* L1 Loads = 2,097,152 + 1,048,576<br>
 8 threads per warp:
-* L1 Loads = 262,144 + 4 x (1,048,576/32) = 393,216
+* L1 Loads = 262,144 + 4 x (1,048,576/32) = 393,216<br>
 32 threads per warp:
-* L1 Loads = 65,536 + 1 x (1,048,576/32) = 98,304
-Beyond this, deriving the L2 loads, stores, and HBM (High Bandwidth Memory) loads becomes straightforward. As mentioned earlier:
-**L1-L2 Transactions:** Occur at a minimum granularity of a 32-byte sector. Fully coalesced accesses (like those from a full warp hitting or missing L1 for a 128-byte cache line) can potentially utilize wider 128-byte cache line transactions.
-**L2-HBM Transactions:** Communication between the L2 cache and HBM on this architecture (e.g., NVIDIA A100) consistently uses a 32-byte sector granularity, considered optimal for HBM device efficiency. Using this knowledge, you can calculate the L2 loads, stores, and HBM loads similarly. Comparing these values with the table above should confirm that the numbers align with expectations.
+* L1 Loads = 65,536 + 1 x (1,048,576/32) = 98,304<br>
+
+Beyond this, deriving the L2 loads, stores, and HBM (High Bandwidth Memory) loads becomes straightforward. As mentioned earlier:<br>
+**L1-L2 Transactions:** Occur at a minimum granularity of a 32-byte sector. Fully coalesced accesses (like those from a full warp hitting or missing L1 for a 128-byte cache line) can potentially utilize wider 128-byte cache line transactions.<br>
+**L2-HBM Transactions:** Communication between the L2 cache and HBM on this architecture (e.g., NVIDIA A100) consistently uses a 32-byte sector granularity, considered optimal for HBM device efficiency.<br>
+Using this knowledge, you can calculate the L2 loads, stores, and HBM loads similarly. Comparing these values with the table above should confirm that the numbers align with expectations.
 
 One key observation in the profiler results for this 8 MB dataset is the complete absence of HBM store traffic. This is expected behavior for this scenario due to two main factors:
 1. Dataset Size vs. L2 Capacity: Our total dataset size (8 MB) is significantly smaller than the large L2 cache capacity of the NVIDIA A100 GPU (40 MB).
 2. L2 Cache Policy: The A100's L2 cache employs a write-back policy. 
 
 Finally, having analyzed the transaction counts and data movement through the cache hierarchy, it's logical to evaluate the efficiency of each cache level by examining their respective hit rates. We can now calculate the L1 and L2 hit rates based on the transaction data discussed. The data reported by Nsight can best be explained by using Sector accesses as:
-L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)
-L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)
+`L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)`
+`L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)`
 This results in the following calculated and profiled values.
 
+<TBD - TABLE>
 
+Evaluating the calculated cache hit rates against the profiler's reported values reveals:
+* The L1 cache hit rate derived from our model aligns very closely with the profiled result, confirming our understanding of L1 behavior, including coalescing and the impact of uniform access patterns (user_arg).
+* The calculated L2 cache hit rate shows a minor deviation from the profiled value.<br>
+
+This slight discrepancy typically stems from complexities not included in our simplified model, primarily the internal traffic within the L2 cache subsystem. Modern GPUs feature large, partitioned L2 caches, and data movement between these partitions (or slices) via an internal interconnect or fabric contributes to overall L2 activity and latency. Modeling this internal L2 traffic is intricate and requires analyzing specialized profiler metrics (e.g., related to the L2 Transaction System or crossbar), which is beyond the scope of this introductory analysis.
+
+For now, the numbers derived here are highly relevant to the primary focus of this blog: analyzing HBM memory accesses.There's one more aspect we haven’t explored yet: what happens when we increase the grid size or the number of thread blocks running across different SMs of the GPU. In this scenario, there’s no fundamentally new behavior. As the dataset size increases, more threads and resources are employed to process it. The table below outlines the data collected for this case. Additionally, this includes the profile with increasing FFMA per thread as well.
+I encourage you to examine this data. Apply the concepts discussed throughout this analysis – coalescing efficiency based on thread counts, transaction granularities (sectors, cache lines), L1/L2 cache policies, and expected load/store ratios per FMA – to verify whether the observed metrics remain consistent with these principles on a per-block or per-warp basis, even amidst the system-level effects of multi-block execution.
 
 
 
