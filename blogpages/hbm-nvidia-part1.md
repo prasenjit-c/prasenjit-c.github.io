@@ -103,3 +103,22 @@ The total data transferred between L2 and device memory is calculated as:
 32,769 sectors×32 B/sector=1.05 MB32,769 \, \text{sectors} \times 32 \, \text{B/sector} = 1.05 \, \text{MB}32,769sectors×32B/sector=1.05MB
 ![](/images/hbm-part1-image6.png "HBM Stats")
 This value closely aligns with the working memory size used in this kernel. You can verify this value further by examining the logical memory diagram displayed in the profiler, which provides a detailed visualization of memory accesses and transfers.
+
+### Digging Deeper in the Memory Hierarchy
+Having established a baseline understanding with a single thread, let's explore how the execution characteristics change as we increase parallelism within a single thread block. Using the same program, we will allocate 8 MB of memory and increase the number of threads from 1 to 8, 32, and 64 threads, while keeping the number of thread blocks fixed at one. Although these thread counts are still relatively small compared to the GPU's full capacity, this controlled experiment allows us to observe fundamental effects of intra-block parallelism, particularly on metrics related to instruction execution and potentially cache hierarchy interactions.
+The table below presents relevant statistics collected from these four runs, similar to those discussed previously. Two metrics related to Fused Multiply-Add (FMA) operations warrant special attention:
+FFMA Executed represents the same statistic we analyzed earlier, measured on a per warp basis by the profiler
+* Total FMA: This represents the aggregate number of FMA operations performed across all threads in the thread block for the entire problem and is derived from FFMA Executed using the formula
+`Total FMA = FMA_Executed (per warp) * MIN(Number_of_Threads, 32)`
+
+For a single thread, Total FFMA and FFMA Executed are identical since a warp consists of only one thread. However, as the number of threads in a warp increases, the FFMA Executed is multiplied by the number of threads (up to a maximum of 32, which is the warp size on recent NVIDIA GPUs).
+Observing the results in the table, you'll notice that the calculated Total FMA remains constant across all four runs (1, 8, 32, and 64 threads). This is expected behavior. The total number of FMA operations required is determined by the size of our input arrays (8 MB) and the logic of the kernel (e.g., one FMA per element). This workload doesn't change; we are merely altering how many threads collaborate to perform it.
+Increasing the number of threads primarily impacts the overall execution time, which should generally decrease as more threads share the work.
+
+|Num Threads|FFMA Executed|Total FFMA|L1 Loads|L1 Stores|L2 Load|L2 Store|HBM Load|HBM Store|Time (ns)|Speedup|
+|-----------|-------------|----------|--------|---------|-------|--------|--------|------------|---------|-------|
+|1          |1,048,576    |1,048,576 |3,145,728|1,048,576|262,145|1,048,576|262,240|0  
+|125,427,328|1
+
+
+
