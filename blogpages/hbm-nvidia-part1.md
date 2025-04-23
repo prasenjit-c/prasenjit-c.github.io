@@ -107,7 +107,7 @@ This value closely aligns with the working memory size used in this kernel. You 
 ### Digging Deeper in the Memory Hierarchy
 Having established a baseline understanding with a single thread, let's explore how the execution characteristics change as we increase parallelism within a single thread block. Using the same program, we will allocate 8 MB of memory and increase the number of threads from 1 to 8, 32, and 64 threads, while keeping the number of thread blocks fixed at one. Although these thread counts are still relatively small compared to the GPU's full capacity, this controlled experiment allows us to observe fundamental effects of intra-block parallelism, particularly on metrics related to instruction execution and potentially cache hierarchy interactions.
 The table below presents relevant statistics collected from these four runs, similar to those discussed previously. Two metrics related to Fused Multiply-Add (FMA) operations warrant special attention:
-FFMA Executed represents the same statistic we analyzed earlier, measured on a per warp basis by the profiler
+* FFMA Executed represents the same statistic we analyzed earlier, measured on a per warp basis by the profiler
 * Total FMA: This represents the aggregate number of FMA operations performed across all threads in the thread block for the entire problem and is derived from FFMA Executed using the formula
 `Total FMA = FMA_Executed (per warp) * MIN(Number_of_Threads, 32)`
 
@@ -117,8 +117,66 @@ Increasing the number of threads primarily impacts the overall execution time, w
 
 |Num Threads|FFMA Executed|Total FFMA|L1 Loads|L1 Stores|L2 Load|L2 Store|HBM Load|HBM Store|Time (ns)|Speedup|
 |-----------|-------------|----------|--------|---------|-------|--------|--------|------------|---------|-------|
-|1          |1,048,576    |1,048,576 |3,145,728|1,048,576|262,145|1,048,576|262,240|0  
-|125,427,328|1
+|1|1,048,576|1,048,576|3,145,728|1,048,576|262,145|1,048,576|262,240|0|125,427,328|1|
+|8|131,072|1,048,576|393,216|131,072|262,145|131,072|262,240|0|50,073,984|2.5|
+|32|32,768|1,048,576|98,304|32,768|65,537|32,768|264,536|0|17,901,664|7.0|
+|64|32,768|1,048,576|98,304|32,768|65,537|32,768|262,452|0|8,897,376|14.1|
+
+#### Analyzing L1 Cache Behavior with Increased Parallelism
+Examining the L1 metrics, we observe an interesting trend: as the number of threads increases, the number of L1 loads and stores decreases. Moreover, this reduction is proportional to the thread factor. For instance:
+* In the 8-thread run, there are 8 times fewer loads and stores compared to the single-thread run.
+* Similarly, in the 32- and 64-thread runs, there are 32 times fewer loads and stores.
+This reduction highlights the cooperative behavior of threads, where memory is accessed collectively by groups of threads. This phenomenon is technically referred to as global memory coalescing, an essential concept for optimizing performance on NVIDIA GPUs.
+Another noteworthy observation is that if we divide the number of L1 loads by the FFMA Executed, the result is a factor of 3. This indicates that, at the warp level, each FMA operation requires three loads, aligning with the expected behavior of our program.
+Before diving deeper, let’s expand our understanding of L1 cache lines and sectors:
+* An L1 cache line in NVIDIA GPUs is typically 128 bytes in size.
+* Each cache line is divided into four sectors, with each sector being 32 bytes.
+* Memory transactions between L1 and L2, or between L2 and device memory, occur at the sector granularity.
+
+Armed with this knowledge, let’s attempt to calculate the L1 loads and stores manually and verify if they match the numbers reported by the NVIDIA profiler.
+To better visualize how threads access data and how coalescing occurs, consider the layout of elements from arrays X and Y relative to the cache structure.
+![](/images/hbm-part1-image7.png "Strided Access")
+Recall that our data elements are 4-byte single-precision floats, 8 elements fit in a sector, and hence 32 elements fit in a cache line. Let's analyze the memory operations required to process 32 consecutive elements, which corresponds to 32 FMA operations assuming one FMA per element. This workload requires loading data equivalent to one cache line of X, loading one cache line of Y, and storing one cache line of Y. When we increase the number of threads in a warp, the memory access efficiency improves as a single load at the warp level can serve all threads in the warp.
+**8 threads per warp serving 32 FFMA:**
+* We require 8 loads, one for each sector, multiplied by 2 for X and Y.
+* Additionally, we need 4 stores for Y, corresponding to each sector
+**32 threads per warp serving 32 FFMA:**
+* A single load serves all 32 threads, covering the entire cache line.
+* Only 2 loads (one each for X and Y) and 1 store (for Y) are needed.
+
+We can now scale this analysis to our entire 8 MB dataset comprising 1,048,576 FFMAs.
+1 thread per warp:
+* L1 Loads = 2 x 1,048,576 = 2,097,152
+* L1 Stores = 1 x 1,048,576 = 1,048576
+8 threads per warp:
+* L1 Loads = 8 x (1,048,576/32) = 262,144
+* L1 Stores = 4 x (1,048,576/32) = 131,072
+32 threads per warp:
+* L1 Loads = 2 x (1,048,576/32) = 65,536
+* L1 Stores = 1 x (1,048,576/32) = 32,768
+
+As you can see, while the stores match perfectly, the loads are slightly off. This discrepancy arises because we overlooked the contribution of the user_arg array. The user_arg array (or variable) exhibits a different access pattern: the same value(s) from it are required by all threads executing within a given warp. When threads within a warp access the exact same memory address, the load operation is performed only once per warp and then efficiently broadcast to all participating threads within that warp. Taking this into account, here is the updated calculation that includes the access to user_arg
+1 thread per warp:
+* L1 Loads = 2,097,152 + 1,048,576
+8 threads per warp:
+* L1 Loads = 262,144 + 4 x (1,048,576/32) = 393,216
+32 threads per warp:
+* L1 Loads = 65,536 + 1 x (1,048,576/32) = 98,304
+Beyond this, deriving the L2 loads, stores, and HBM (High Bandwidth Memory) loads becomes straightforward. As mentioned earlier:
+**L1-L2 Transactions:** Occur at a minimum granularity of a 32-byte sector. Fully coalesced accesses (like those from a full warp hitting or missing L1 for a 128-byte cache line) can potentially utilize wider 128-byte cache line transactions.
+**L2-HBM Transactions:** Communication between the L2 cache and HBM on this architecture (e.g., NVIDIA A100) consistently uses a 32-byte sector granularity, considered optimal for HBM device efficiency. Using this knowledge, you can calculate the L2 loads, stores, and HBM loads similarly. Comparing these values with the table above should confirm that the numbers align with expectations.
+
+One key observation in the profiler results for this 8 MB dataset is the complete absence of HBM store traffic. This is expected behavior for this scenario due to two main factors:
+1. Dataset Size vs. L2 Capacity: Our total dataset size (8 MB) is significantly smaller than the large L2 cache capacity of the NVIDIA A100 GPU (40 MB).
+2. L2 Cache Policy: The A100's L2 cache employs a write-back policy. 
+
+Finally, having analyzed the transaction counts and data movement through the cache hierarchy, it's logical to evaluate the efficiency of each cache level by examining their respective hit rates. We can now calculate the L1 and L2 hit rates based on the transaction data discussed. The data reported by Nsight can best be explained by using Sector accesses as:
+L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)
+L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)
+This results in the following calculated and profiled values.
+
+
+
 
 
 
