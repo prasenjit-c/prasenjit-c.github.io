@@ -94,22 +94,27 @@ To accurately compute the L1 cache hit rate, we use the following calculation:
 * Total L1 requests: 393,216 + 131,072 = 524,288
 * Sector Misses to L2: 32,769
 
-Thus, the L1 cache hit rate is: 1 - 32,769/524,288 = 93.75%
+Thus, the L1 cache hit rate is: 1 - 32,769/524,288 = 93.75%<br>
 This calculation aligns with the data and reflects the efficiency of L1 cache utilization for this kernel.
 
 Moving further down the memory hierarchy, we examine the L2 cache statistics to understand its role in servicing memory requests that missed the L1 cache. Key columns to examine in this analysis are Requests, Sectors and Sectors/Request. In NVIDIA GPUs, each cache line is 128 bytes, and these are divided into 4 sectors, each consisting of 32 bytes. Requests between L1 cache, L2 cache and device memory operate at the granularity of a sector. From the profiler, we observe that the total sector misses to device memory amount to 32,770. This indicates that every request reaching L2 and missing there results in an access to device memory.
+
 ![](/images/hbm-part1-image5.png "L2 Stats")
+
 The total data transferred between L2 and device memory is calculated as:<br>
 32,769 sectors * 32 B/sector=1.05 MB
+
 ![](/images/hbm-part1-image6.png "HBM Stats")
+
 This value closely aligns with the working memory size used in this kernel. You can verify this value further by examining the logical memory diagram displayed in the profiler, which provides a detailed visualization of memory accesses and transfers.
 
 ### Digging Deeper in the Memory Hierarchy
 Having established a baseline understanding with a single thread, let's explore how the execution characteristics change as we increase parallelism within a single thread block. Using the same program, we will allocate 8 MB of memory and increase the number of threads from 1 to 8, 32, and 64 threads, while keeping the number of thread blocks fixed at one. Although these thread counts are still relatively small compared to the GPU's full capacity, this controlled experiment allows us to observe fundamental effects of intra-block parallelism, particularly on metrics related to instruction execution and potentially cache hierarchy interactions.
 The table below presents relevant statistics collected from these four runs, similar to those discussed previously. Two metrics related to Fused Multiply-Add (FMA) operations warrant special attention:
 * FFMA Executed represents the same statistic we analyzed earlier, measured on a per warp basis by the profiler
-* Total FMA: This represents the aggregate number of FMA operations performed across all threads in the thread block for the entire problem and is derived from FFMA Executed using the formula
-`Total FMA = FMA_Executed (per warp) * MIN(Number_of_Threads, 32)`
+* Total FFMA: This represents the aggregate number of FMA operations performed across all threads in the thread block for the entire problem and is derived from FFMA Executed using the formula
+
+`Total FFMA = FMA_Executed (per warp) * MIN(Number_of_Threads, 32)`
 
 For a single thread, Total FFMA and FFMA Executed are identical since a warp consists of only one thread. However, as the number of threads in a warp increases, the FFMA Executed is multiplied by the number of threads (up to a maximum of 32, which is the warp size on recent NVIDIA GPUs).
 Observing the results in the table, you'll notice that the calculated Total FMA remains constant across all four runs (1, 8, 32, and 64 threads). This is expected behavior. The total number of FMA operations required is determined by the size of our input arrays (8 MB) and the logic of the kernel (e.g., one FMA per element). This workload doesn't change; we are merely altering how many threads collaborate to perform it.
@@ -186,7 +191,7 @@ Finally, having analyzed the transaction counts and data movement through the ca
 `L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)`<br>
 `L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)`<br>
 
-This results in the following calculated and profiled values.
+This results in the following calculated and profiled values.<br>
 |Num Threads|L1 Hit Rate (NSight:Calculated)|L2 Hit Rate (NSight:Calculated)|
 |-----------|-------------------------------|-------------------------------|
 |1|93.8 : 93.8|86.9 : 95|
@@ -204,24 +209,24 @@ I encourage you to examine this data. Apply the concepts discussed throughout th
 
 ### Complete Profile Data
 #### NVIDIA A100 SXM4 40GB
-__HOST OS: Linux Ubuntu 22.04__
-Following commands used to generate the complete profile:
-`sudo ncu --set full -o ami_profile_1_1_1 ./ami_measure 1024 1 1 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_1_8 ./ami_measure 1024 1 1 8 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_8_1 ./ami_measure.exe 1024 1 8 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_1L_1 ./ami_measure 8192 1 1 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_8L_1 ./ami_measure 8192 1 8 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_32_1 ./ami_measure 8192 1 32 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_64_1 ./ami_measure 8192 1 64 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_1_32_8 ./ami_measure 8192 1 32 8 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_64_8_1 ./ami_measure.exe 1048576 64 8 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_64_32_1 ./ami_measure 1048576 64 32 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_64_32_2 ./ami_measure 1048576 64 32 2 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_64_32_4 ./ami_measure 1048576 64 32 4 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_64_32_8 ./ami_measure 1048576 64 32 8 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_4096_32_1 ./ami_measure 4194304 4096 32 1 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_4096_32_2 ./ami_measure 4194304 4096 32 2 1 2 3 4 5 6 7 8
-sudo ncu --set full -o ami_profile_4096_32_4 ./ami_measure 4194304 4096 32 4 1 2 3 4 5 6 7 8
+__HOST OS: Linux Ubuntu 22.04__<br>
+Following commands used to generate the complete profile:<br>
+`sudo ncu --set full -o ami_profile_1_1_1 ./ami_measure 1024 1 1 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_1_8 ./ami_measure 1024 1 1 8 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_8_1 ./ami_measure.exe 1024 1 8 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_1L_1 ./ami_measure 8192 1 1 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_8L_1 ./ami_measure 8192 1 8 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_32_1 ./ami_measure 8192 1 32 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_64_1 ./ami_measure 8192 1 64 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_1_32_8 ./ami_measure 8192 1 32 8 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_64_8_1 ./ami_measure.exe 1048576 64 8 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_64_32_1 ./ami_measure 1048576 64 32 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_64_32_2 ./ami_measure 1048576 64 32 2 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_64_32_4 ./ami_measure 1048576 64 32 4 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_64_32_8 ./ami_measure 1048576 64 32 8 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_4096_32_1 ./ami_measure 4194304 4096 32 1 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_4096_32_2 ./ami_measure 4194304 4096 32 2 1 2 3 4 5 6 7 8<br>
+sudo ncu --set full -o ami_profile_4096_32_4 ./ami_measure 4194304 4096 32 4 1 2 3 4 5 6 7 8<br>
 sudo ncu --set full -o ami_profile_4096_32_8 ./ami_measure 4194304 4096 32 8 1 2 3 4 5 6 7 8`
 
 ![](/images/hbm-part1-image8.png "Full-Profile-Data-A100")
