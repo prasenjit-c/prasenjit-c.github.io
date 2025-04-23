@@ -14,7 +14,7 @@ The CUDA kernel performs an element-wise Fused Multiply-Accumulate (FMA) operati
 #### Kernel Functionality and Memory Access:
 
 For each element `i`, it performs `OP` FMA operations, utilizing distinct scalar values from the `user_arg[o]` array. Essentially, it accumulates `OP` products of `x[i] * user_arg[o]` into `y[i]`, effectively computing:
-$$y[i] = y[i] + x[i] * user\_arg[0] + x[i] * user\_arg[1] + ... + x[i] * user\_arg[OP-1]$$
+y[i] = y[i] + x[i] * user_arg[0] + x[i] * user_arg[1] + ... + x[i] * user_arg[OP-1]
 Each thread processes multiple elements, spaced apart by a `stride`, ensuring comprehensive coverage of the input data.
 
 #### Memory Access Patterns:
@@ -58,3 +58,48 @@ The __Compute Workload Analysis__ and __Instruction Statistics__ sections provid
 Continuing with the profile collected from our trivial kernel launch, we observe that the kernel was launched with grid and block dimensions set to one for all three axes (X, Y, and Z). This confirms our configuration, indicating that only a single thread is running on the entire GPU.
 Next, let's analyze the instruction statistics. The profiler reports approximately 2.3 million total executed instructions. Diving deeper into the instruction mix, the executed fused multiply-add (FMA) instructions, represented as FFMA, are of particular interest. The report indicates that 131,072 FFMA instructions were executed.
 
+#### Verifying FMA Instruction Count
+
+We can verify this FMA count against our kernel's intended operation and input data size. Our kernel processes two arrays, X and Y, each allocated with 0.5 MB of memory. Assuming each element is a 4-byte single-precision floating-point number (float), we can calculate the number of elements in one array:
+
+* Array Size = 0.5 MB = 512 KB = $512 \times 1024$ bytes = 524,288 bytes
+* Size of Element (float) = 4 bytes
+* Number of Elements = Array Size / Size of Element = 524,288 bytes / 4 bytes/element = 131,072 elements
+* Expected FMA Operations = Number of Elements = 131,072
+
+This calculated value precisely matches the 131,072 FMA instructions reported by Nsight Compute's Instruction Statistics section, validating our understanding of the kernel's execution behavior and the profiler's output.
+
+#### Verifying the Memory Statistics
+Now, let's turn our focus to the __Memory Analysis__ section of the profile. Specifically, examine the table of cache accesses. This table includes columns such as *Instructions, Requests, Referenced Sectors, Hit Rate*, and more.
+![](/images/hbm-part1-image4.png "L1 Stats")
+In this particular case, since there is only a single thread executing the kernel, the values for Instructions, Requests, and Referenced Sectors are all identical. In later kernel analyses, we will explore scenarios where these values can differ
+For now, we observe that the L1 cache accesses resulting from global memory operations as reported by the profiler:
+* Global Load Requests: The profiler indicates 393,216 requests targeting the L1 cache originated from global memory load instructions.
+* Global Store Requests: Similarly, 131,072 requests targeting the L1 cache originated from global memory store instructions.
+Recall from our instruction analysis that the kernel processed 131,072 elements. The observed memory request counts suggest a specific access pattern:
+* The 131,072 store requests correspond directly to one store operation per element processed.
+* The 393,216 load requests (which is exactly 3 * 131,072) imply that the kernel performs three distinct load operations from global memory for each element it processes.
+This quantitative match between instruction counts, element counts, and memory requests reinforces our understanding of the kernel's behavior: for each of the 131,072 iterations (one per element), the code likely reads three values from global memory and writes one value back, with these operations primarily interacting with the L1 cache initially.
+
+#### Calculating the L1 Cache Hit Rate
+To accurately evaluate the effectiveness of the L1 cache, particularly its hit rate, we need to consider a fundamental characteristic of many NVIDIA GPU architectures: the L1 data cache typically employs a write-through policy.
+
+A write-through cache policy means that whenever a store operation writes data to the L1 cache, that data is simultaneously (or very shortly thereafter) written to the next level of the memory hierarchy, which is usually the L2 cache.
+This policy can sometimes lead to confusing interpretations of profiler metrics related to store operations:
+* L1 Store "Hits": A profiler might report a very high (even 100%) L1 hit rate for global store operations. This often signifies that the L1 cache successfully accepted the write request.
+* L2 Traffic from Stores: Concurrently, because the write must propagate to L2 due to the write-through policy, these same store operations will generate traffic (transactions) between L1 and L2. The profiler might report these L1-to-L2 transactions in a way that appears as "L2 Misses" or increased L2 traffic originating from L1 stores.
+
+It might seem contradictory for a store to be an L1 "hit" while also causing an L1-to-L2 transaction (sometimes logged confusingly). This stems directly from the write-through mechanism: the L1 accepts the write (hit) but does not retain sole ownership; the data must proceed to L2.
+To accurately compute the L1 cache hit rate, we use the following calculation:
+* Total L1 requests: 393,216 + 131,072 = 524,288
+* Sector Misses to L2: 32,769
+
+Thus, the L1 cache hit rate is: 1 - 32,769/524,288 = 93.75%
+This calculation aligns with the data and reflects the efficiency of L1 cache utilization for this kernel.
+
+Moving further down the memory hierarchy, we examine the L2 cache statistics to understand its role in servicing memory requests that missed the L1 cache. Key columns to examine in this analysis are Requests, Sectors and Sectors/Request. In NVIDIA GPUs, each cache line is 128 bytes, and these are divided into 4 sectors, each consisting of 32 bytes. Requests between L1 cache, L2 cache and device memory operate at the granularity of a sector. From the profiler, we observe that the total sector misses to device memory amount to 32,770. This indicates that every request reaching L2 and missing there results in an access to device memory.
+![](/images/hbm-part1-image5.png "L2 Stats")
+The total data transferred between L2 and device memory is calculated as:
+32,769 sectors×32 B/sector=1.05 MB32,769 \, \text{sectors} \times 32 \, \text{B/sector} = 1.05 \, \text{MB}32,769sectors×32B/sector=1.05MB
+![](/images/hbm-part1-image6.png "HBM Stats")
+This value closely aligns with the working memory size used in this kernel. You can verify this value further by examining the logical memory diagram displayed in the profiler, which provides a detailed visualization of memory accesses and transfers.
