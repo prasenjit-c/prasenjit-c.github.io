@@ -200,6 +200,32 @@ Evaluating the calculated cache hit rates against the profiler's reported values
 This slight discrepancy typically stems from complexities not included in our simplified model, primarily the internal traffic within the L2 cache subsystem. Modern GPUs feature large, partitioned L2 caches, and data movement between these partitions (or slices) via an internal interconnect or fabric contributes to overall L2 activity and latency. Modeling this internal L2 traffic is intricate and requires analyzing specialized profiler metrics (e.g., related to the L2 Transaction System or crossbar), which is beyond the scope of this introductory analysis.
 
 For now, the numbers derived here are highly relevant to the primary focus of this blog: analyzing HBM memory accesses.There's one more aspect we haven’t explored yet: what happens when we increase the grid size or the number of thread blocks running across different SMs of the GPU. In this scenario, there’s no fundamentally new behavior. As the dataset size increases, more threads and resources are employed to process it. The table below outlines the data collected for this case. Additionally, this includes the profile with increasing FFMA per thread as well.
-I encourage you to examine this data. Apply the concepts discussed throughout this analysis – coalescing efficiency based on thread counts, transaction granularities (sectors, cache lines), L1/L2 cache policies, and expected load/store ratios per FMA – to verify whether the observed metrics remain consistent with these principles on a per-block or per-warp basis, even amidst the system-level effects of multi-block execution.
-![](/images/hbm-part1-image8.png "Full Profile")
-[Full Profile](/blogpages/hbm-part1-full-data.csv)
+I encourage you to examine this data. Apply the concepts discussed throughout this analysis – coalescing efficiency based on thread counts, transaction granularities (sectors, cache lines), L1/L2 cache policies, and expected load/store ratios per FMA – to verify whether the observed metrics remain consistent with these principles on a per-block or per-warp basis, even amidst the system-level effects of multi-block execution.<br>
+
+### Complete Profile Data
+#### NVIDIA A100 SXM4 40GB
+__HOST OS: Linux Ubuntu 22.04__
+Following commands used to generate the complete profile:
+`sudo ncu --set full -o ami_profile_1_1_1 ./ami_measure 1024 1 1 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_1_8 ./ami_measure 1024 1 1 8 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_8_1 ./ami_measure.exe 1024 1 8 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_1L_1 ./ami_measure 8192 1 1 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_8L_1 ./ami_measure 8192 1 8 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_32_1 ./ami_measure 8192 1 32 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_64_1 ./ami_measure 8192 1 64 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_1_32_8 ./ami_measure 8192 1 32 8 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_64_8_1 ./ami_measure.exe 1048576 64 8 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_64_32_1 ./ami_measure 1048576 64 32 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_64_32_2 ./ami_measure 1048576 64 32 2 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_64_32_4 ./ami_measure 1048576 64 32 4 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_64_32_8 ./ami_measure 1048576 64 32 8 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_4096_32_1 ./ami_measure 4194304 4096 32 1 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_4096_32_2 ./ami_measure 4194304 4096 32 2 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_4096_32_4 ./ami_measure 4194304 4096 32 4 1 2 3 4 5 6 7 8
+sudo ncu --set full -o ami_profile_4096_32_8 ./ami_measure 4194304 4096 32 8 1 2 3 4 5 6 7 8`
+
+![](/images/hbm-part1-image8.png "Full-Profile-Data-A100")
+
+Complete Data is avilable as a CSV file for easier analysis.
+
+[Full-Profile-Data-A100](/blogpages/hbm-part1-full-data.csv)
