@@ -193,11 +193,11 @@ Finally, having analyzed the transaction counts and data movement through the ca
 
 This results in the following calculated and profiled values.
 
-|Num Threads|L1 Hit Rate|L2 Hit Rate|
+|Num Threads|L1 Hit Rate (NSight : Calculated)|L2 Hit Rate (NSight : Calculated)|
 |-----------|-------------------------------|-------------------------------|
-|1|93.8  93.8|86.9  95|
-|8|50  50|58.2  83.3|
-|32|38.5  50|35.7  32.7|
+|1|93.8 : 93.8|86.9 : 95|
+|8|50 : 50|58.2 : 83.3|
+|32|38.5 : 50|35.7 : 32.7|
 
 Evaluating the calculated cache hit rates against the profiler's reported values reveals:
 * The L1 cache hit rate derived from our model aligns very closely with the profiled result, confirming our understanding of L1 behavior, including coalescing and the impact of uniform access patterns (user_arg).
@@ -212,23 +212,23 @@ I encourage you to examine this data. Apply the concepts discussed throughout th
 #### NVIDIA A100 SXM4 40GB
 __HOST OS: Linux Ubuntu 22.04__<br>
 Following commands used to generate the complete profile:<br>
-`sudo ncu --set full -o ami_profile_1_1_1 ./ami_measure 1024 1 1 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_1_8 ./ami_measure 1024 1 1 8 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_8_1 ./ami_measure.exe 1024 1 8 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_1L_1 ./ami_measure 8192 1 1 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_8L_1 ./ami_measure 8192 1 8 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_32_1 ./ami_measure 8192 1 32 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_64_1 ./ami_measure 8192 1 64 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_1_32_8 ./ami_measure 8192 1 32 8 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_64_8_1 ./ami_measure.exe 1048576 64 8 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_64_32_1 ./ami_measure 1048576 64 32 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_64_32_2 ./ami_measure 1048576 64 32 2 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_64_32_4 ./ami_measure 1048576 64 32 4 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_64_32_8 ./ami_measure 1048576 64 32 8 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_4096_32_1 ./ami_measure 4194304 4096 32 1 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_4096_32_2 ./ami_measure 4194304 4096 32 2 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_4096_32_4 ./ami_measure 4194304 4096 32 4 1 2 3 4 5 6 7 8`
-`sudo ncu --set full -o ami_profile_4096_32_8 ./ami_measure 4194304 4096 32 8 1 2 3 4 5 6 7 8`
+`sudo ncu --set full -o ami_profile_1_1_1 ./ami_measure 1024 1 1 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_1_8 ./ami_measure 1024 1 1 8 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_8_1 ./ami_measure.exe 1024 1 8 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_1L_1 ./ami_measure 8192 1 1 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_8L_1 ./ami_measure 8192 1 8 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_32_1 ./ami_measure 8192 1 32 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_64_1 ./ami_measure 8192 1 64 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_1_32_8 ./ami_measure 8192 1 32 8 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_64_8_1 ./ami_measure.exe 1048576 64 8 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_64_32_1 ./ami_measure 1048576 64 32 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_64_32_2 ./ami_measure 1048576 64 32 2 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_64_32_4 ./ami_measure 1048576 64 32 4 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_64_32_8 ./ami_measure 1048576 64 32 8 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_4096_32_1 ./ami_measure 4194304 4096 32 1 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_4096_32_2 ./ami_measure 4194304 4096 32 2 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_4096_32_4 ./ami_measure 4194304 4096 32 4 1 2 3 4 5 6 7 8`<br>
+`sudo ncu --set full -o ami_profile_4096_32_8 ./ami_measure 4194304 4096 32 8 1 2 3 4 5 6 7 8`<br>
 
 ![](/images/hbm-part1-image8.png "Full-Profile-Data-A100")
 
