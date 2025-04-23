@@ -188,6 +188,7 @@ Finally, having analyzed the transaction counts and data movement through the ca
 
 This results in the following calculated and profiled values.
 |Num Threads|L1 Hit Rate (NSight:Calculated)|L2 Hit Rate (NSight:Calculated)|
+|-----------|-------------------------------|-------------------------------|
 |1|93.8 : 93.8|86.9 : 95|
 |8|50 : 50|58.2 : 83.3|
 |32|38.5 : 50|35.7 : 32.7|
@@ -200,7 +201,5 @@ This slight discrepancy typically stems from complexities not included in our si
 
 For now, the numbers derived here are highly relevant to the primary focus of this blog: analyzing HBM memory accesses.There's one more aspect we haven’t explored yet: what happens when we increase the grid size or the number of thread blocks running across different SMs of the GPU. In this scenario, there’s no fundamentally new behavior. As the dataset size increases, more threads and resources are employed to process it. The table below outlines the data collected for this case. Additionally, this includes the profile with increasing FFMA per thread as well.
 I encourage you to examine this data. Apply the concepts discussed throughout this analysis – coalescing efficiency based on thread counts, transaction granularities (sectors, cache lines), L1/L2 cache policies, and expected load/store ratios per FMA – to verify whether the observed metrics remain consistent with these principles on a per-block or per-warp basis, even amidst the system-level effects of multi-block execution.
-
-
-
-
+![](/images/hbm-part1-image8.png "Full Profile")
+[Full Profile](/blogpages/hbm-part1-full-data.csv)
