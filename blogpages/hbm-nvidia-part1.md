@@ -42,7 +42,19 @@ Nvidia Nsight Compute offers flexibility in how you start a profiling session, a
 
 ```bash
 sudo ncu --set full -o <profile-file-name> <executable>
+```
 
-The above command launches a profile with a complete set of events and counters. When starting with profiling, collecting the complete set of performance counters can be a good strategy, as it ensures comprehensive data capture and prevents accidentally overlooking important metrics. However, if you are more experienced or have a specific focus, you can use a targeted set of counters by leveraging the various options provided.Once the profile is collected and loaded into the GUI, you'll typically focus on key sections like 'Computation Analysis' and 'Memory Analysis'. This particular blog post concentrates on the memory hierarchy; therefore, our discussion will center on the findings within the **Memory Analysis** section, setting aside detailed compute optimization strategies for now."
+The above command launches a profile with a complete set of events and counters. When starting with profiling, collecting the complete set of performance counters can be a good strategy, as it ensures comprehensive data capture and prevents accidentally overlooking important metrics. However, if you are more experienced or have a specific focus, you can use a targeted set of counters by leveraging the various options provided.Once the profile is collected and loaded into the GUI, you'll typically focus on key sections like __Computation Analysis__ and __Memory Analysis__. This particular blog post concentrates on the memory hierarchy; therefore, our discussion will center on the findings within the **Memory Analysis** section, setting aside detailed compute optimization strategies for now."
 
 I have listed every command in detail via the link provided below, enabling you to recreate this analysis in your own environment and see the results for yourselves. To illustrate, we start by profiling a highly simplified version of the program on A100 - **configured using a single block, a single thread, 1 MB of memory, and a single FMA instruction (OP = 1)** — produces a profile that, when loaded into the GUI, looks something like this:
+![](/images/hbm-part1-image1.png "Profile Summary")
+
+While fields like __Estimated Speedup__ and __Runtime Improvement__ might not be the immediate focus, the other details provide a useful sanity check on the program's execution. Moving to the __Details__ tab, the **GPU Speed of Light Throughput** section quantifies the utilization of the GPU's compute and memory subsystems. As expected, given our rudimentary test program, you'll notice that the compute and memory utilization figures reported here are negligible.
+![](/images/hbm-part1-image2.png "SOL")
+
+The __Compute Workload Analysis__ and __Instruction Statistics__ sections provide additional details about the behavior of threads and warps during execution. To gain deeper insights into memory behavior, we can explore the **Memory Workload Analysis** section, which helps us understand the kernel’s memory access patterns. This section begins with numerical data and includes a clear pictorial representation of the GPU's logical memory hierarchy. There is sufficient information to grasp the concepts, so let's proceed step-by-step to analyze it.
+![](/images/hbm-part1-image3.png "Memory Hierarchy")
+
+Continuing with the profile collected from our trivial kernel launch, we observe that the kernel was launched with grid and block dimensions set to one for all three axes (X, Y, and Z). This confirms our configuration, indicating that only a single thread is running on the entire GPU.
+Next, let's analyze the instruction statistics. The profiler reports approximately 2.3 million total executed instructions. Diving deeper into the instruction mix, the executed fused multiply-add (FMA) instructions, represented as FFMA, are of particular interest. The report indicates that 131,072 FFMA instructions were executed.
+
