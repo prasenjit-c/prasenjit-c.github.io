@@ -137,30 +137,39 @@ Before diving deeper, let’s expand our understanding of L1 cache lines and sec
 Armed with this knowledge, let’s attempt to calculate the L1 loads and stores manually and verify if they match the numbers reported by the NVIDIA profiler.
 To better visualize how threads access data and how coalescing occurs, consider the layout of elements from arrays X and Y relative to the cache structure.
 ![](/images/hbm-part1-image7.png "Strided Access")
+
 Recall that our data elements are 4-byte single-precision floats, 8 elements fit in a sector, and hence 32 elements fit in a cache line. Let's analyze the memory operations required to process 32 consecutive elements, which corresponds to 32 FMA operations assuming one FMA per element. This workload requires loading data equivalent to one cache line of X, loading one cache line of Y, and storing one cache line of Y. When we increase the number of threads in a warp, the memory access efficiency improves as a single load at the warp level can serve all threads in the warp.<br>
+
 **8 threads per warp serving 32 FFMA:**
 * We require 8 loads, one for each sector, multiplied by 2 for X and Y.
 * Additionally, we need 4 stores for Y, corresponding to each sector <br>
+
 **32 threads per warp serving 32 FFMA:**
 * A single load serves all 32 threads, covering the entire cache line.
 * Only 2 loads (one each for X and Y) and 1 store (for Y) are needed.
 
 We can now scale this analysis to our entire 8 MB dataset comprising 1,048,576 FFMAs.<br>
+
 1 thread per warp:
 * L1 Loads = 2 x 1,048,576 = 2,097,152
 * L1 Stores = 1 x 1,048,576 = 1,048576<br>
+
 8 threads per warp:
 * L1 Loads = 8 x (1,048,576/32) = 262,144
 * L1 Stores = 4 x (1,048,576/32) = 131,072<br>
+
 32 threads per warp:
 * L1 Loads = 2 x (1,048,576/32) = 65,536
 * L1 Stores = 1 x (1,048,576/32) = 32,768
 
 As you can see, while the stores match perfectly, the loads are slightly off. This discrepancy arises because we overlooked the contribution of the user_arg array. The user_arg array (or variable) exhibits a different access pattern: the same value(s) from it are required by all threads executing within a given warp. When threads within a warp access the exact same memory address, the load operation is performed only once per warp and then efficiently broadcast to all participating threads within that warp. Taking this into account, here is the updated calculation that includes the access to user_arg.<br>
+
 1 thread per warp:
 * L1 Loads = 2,097,152 + 1,048,576<br>
+
 8 threads per warp:
 * L1 Loads = 262,144 + 4 x (1,048,576/32) = 393,216<br>
+
 32 threads per warp:
 * L1 Loads = 65,536 + 1 x (1,048,576/32) = 98,304<br>
 
@@ -173,12 +182,15 @@ One key observation in the profiler results for this 8 MB dataset is the complet
 1. Dataset Size vs. L2 Capacity: Our total dataset size (8 MB) is significantly smaller than the large L2 cache capacity of the NVIDIA A100 GPU (40 MB).
 2. L2 Cache Policy: The A100's L2 cache employs a write-back policy. 
 
-Finally, having analyzed the transaction counts and data movement through the cache hierarchy, it's logical to evaluate the efficiency of each cache level by examining their respective hit rates. We can now calculate the L1 and L2 hit rates based on the transaction data discussed. The data reported by Nsight can best be explained by using Sector accesses as:
-`L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)`
-`L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)`
-This results in the following calculated and profiled values.
+Finally, having analyzed the transaction counts and data movement through the cache hierarchy, it's logical to evaluate the efficiency of each cache level by examining their respective hit rates. We can now calculate the L1 and L2 hit rates based on the transaction data discussed. The data reported by Nsight can best be explained by using Sector accesses as:<br>
+`L1 Hit Rate = Sectors(L1 Loads + L1 Stores - L2 Loads)/Sectors(L1 Loads + L1 Stores)`<br>
+`L2 Hit Rate = (L2 Loads + L2 Stores - HBM Loads/4)/(L2 Loads + L2 Stores)`<br>
 
-<TBD - TABLE>
+This results in the following calculated and profiled values.
+|Num Threads|L1 Hit Rate (NSight:Calculated)|L2 Hit Rate (NSight:Calculated)|
+|1|93.8 : 93.8|86.9 : 95|
+|8|50 : 50|58.2 : 83.3|
+|32|38.5 : 50|35.7 : 32.7|
 
 Evaluating the calculated cache hit rates against the profiler's reported values reveals:
 * The L1 cache hit rate derived from our model aligns very closely with the profiled result, confirming our understanding of L1 behavior, including coalescing and the impact of uniform access patterns (user_arg).
