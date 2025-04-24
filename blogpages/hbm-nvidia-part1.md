@@ -235,3 +235,12 @@ Following commands used to generate the complete profile:<br>
 Complete Data is avilable as a CSV file for easier analysis.
 
 [Full-Profile-Data-A100](/blogpages/hbm-part1-full-data.csv)
+
+It would be intersting if you can try the experiment on H100 and observe how the profile data compares with A100.
+
+### Resources to explore
+#### NVIDIA NSight Compute
+[Videos](https://developer.nvidia.com/nsight-compute-videos)
+[Blogs](https://developer.nvidia.com/nsight-compute-blogs)
+[Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#)
+[Hands-On](https://github.com/NVIDIA/nsight-training.git)
