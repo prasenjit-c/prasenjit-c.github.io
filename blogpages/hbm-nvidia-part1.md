@@ -239,8 +239,12 @@ Complete Data is avilable as a CSV file for easier analysis.
 It would be intersting if you can try the experiment on H100 and observe how the profile data compares with A100.
 
 ### Resources to explore
+#### NVIDIA GPU Memory Hierarchy
+[GTC2025](https://www.nvidia.com/en-us/on-demand/session/gtc25-s72683/)<br>
+
 #### NVIDIA NSight Compute
 [Videos](https://developer.nvidia.com/nsight-compute-videos)
+[GTC2025](https://www.nvidia.com/en-us/on-demand/session/gtc25-dlit71640/)<br>
 [Blogs](https://developer.nvidia.com/nsight-compute-blogs)
 [Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#)
 [Hands-On](https://github.com/NVIDIA/nsight-training.git)
