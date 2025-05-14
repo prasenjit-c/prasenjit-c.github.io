@@ -35,9 +35,17 @@ An essential aspect of understanding HBM is how a compute engine—whether a CPU
 
 ![](/images/hbm-gpu-packaging.png "HBM GPU Package")
 
-On the HBM device side, as we’ve discussed, there are 1024 signals spread across 8 channels for HBM2 or 16 channels for HBM3. These signals are routed through the silicon interposer and connected to a SERDES (Serializer/Deserializer), depicted as a PHY in the figure, located on the GPU die. The PHY then interfaces with individual memory controllers, each managing a channel. From the software perspective, these memory channels are accessed similarly to traditional memory systems. However, achieving optimal memory performance in systems with multiple HBM devices, each containing numerous channels is a complex undertaking. It necessitates significant empirical analysis and experimentation, an aspect we will explore in more detail later. For now, with this foundational understanding, we will proceed to examine the specific implementation and utilization of HBM in NVIDIA's A100 and H100 GPUs.
+On the HBM device side, as we’ve discussed, there are 1024 signals spread across 8 channels for HBM2 or 16 channels for HBM3. These signals are routed through the silicon interposer and connected to a SERDES (Serializer/Deserializer), depicted as a PHY in the figure, located on the GPU die. The PHY then interfaces with individual memory controllers, each managing a channel. From the software perspective, these memory channels are accessed similarly to traditional memory systems. The below figure shows an actual HBM2 in the Pascal P100 package.
 
-### HBM Implemnattion in A100 & H100 GPUs
+![](/images/P100-HBM2-Package.png "HBM2 in P100")
+
+However, achieving optimal memory performance in systems with multiple HBM devices, each containing numerous channels is a complex undertaking. It necessitates significant empirical analysis and experimentation, an aspect we will explore in more detail later. For now, with this foundational understanding, we will proceed to examine the specific implementation and utilization of HBM in NVIDIA's A100 and H100 GPUs.
+
+### HBM Implementation in A100 & H100 GPUs
+
+![](/images/Nvidia-HBM.png "HBM Device in A100 and H100")
+
+![](/images/Nvidia-HBM-Parameters.png "HBM Configuration")
 
 ### Resources to explore
 #### HBM Architecture
