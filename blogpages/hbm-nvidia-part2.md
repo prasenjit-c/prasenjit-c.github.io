@@ -47,6 +47,10 @@ However, achieving optimal memory performance in systems with multiple HBM devic
 
 ![](/images/Nvidia-HBM-Parameters.png "HBM Configuration")
 
+![](/images/L2-NOC.png "L2 Interconnect")
+
+![](/images/Address-Mapping.png "Device Address Mapping")
+
 ### Resources to explore
 #### HBM Architecture
 [Wikipedia](https://en.wikipedia.org/wiki/High_Bandwidth_Memory)
