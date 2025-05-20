@@ -71,9 +71,10 @@ While these steps appear straightforward in determining the final memory destina
 
 1. Partitioning the Device Memory Address Space:<br>
    First and foremost, a critical decision lies in how the entire device memory address space should be partitioned across multiple HBM devices. Consider an example with the A100 GPU, which has 40 GB of HBM memory divided across five devices (8 GB each).
-   - One approach could assign the first 8 GB of the address space to the first HBM device, the next 8 GB to the second, and so forth.
-   - Another approach could interleave memory at a fine granularity, such as at a cache-line level (e.g., 128 bytes). In this case, the first 128 bytes could go to one HBM device, the next 128 bytes to another, cycling through all devices before looping back.<br>
-   Each approach has distinct pros and cons regarding locality, load balancing, and contention. A practical solution likely lies in between, involving block-sized address ranges mapped to specific HBMs, with interleaving at a coarser granularity.
+- One approach could assign the first 8 GB of the address space to the first HBM device, the next 8 GB to the second, and so forth.
+- Another approach could interleave memory at a fine granularity, such as at a cache-line level (e.g., 128 bytes). In this case, the first 128 bytes could go to one HBM device, the next 128 bytes to another, cycling through all devices before looping back.<br>
+
+Each approach has distinct pros and cons regarding locality, load balancing, and contention. A practical solution likely lies in between, involving block-sized address ranges mapped to specific HBMs, with interleaving at a coarser granularity.
 
 1. Mapping within an HBM Device:<br>
 Extending this further, once an HBM device is selected, the exact mapping scheme for a particular channel, and subsequently, the bank and rows within that channel, becomes another crucial consideration. This includes architectural choices such as whether an open-page or closed-page policy should be adopted, each impacting access latency and throughput.
@@ -83,6 +84,11 @@ Another pivotal aspect involves deciding the optimal L2 slice and partition to w
 
 1. Cross-Partition Data Access in L2 Cache:<br>
 Finally, there's the consideration of coherence and data placement when an SM accesses an address mapped to an L2 partition it is not directly connected to. In such cases, should the data exclusively reside in that remote L2 partition, or would it be more beneficial to also copy the data to the local L2 partition? Understanding the conditions under which such copying is advantageous, especially concerning L2 coherence traffic (as briefly noted in Part 1), is vital for maximizing performance.
+
+With this foundational background established, let's now transition to examining the real-world performance achievable from HBM.
+
+### HBM Bandwidth Under the Lens: Threads, SMs, and Beyond
+
 
 ### Resources to explore
 #### HBM Architecture
