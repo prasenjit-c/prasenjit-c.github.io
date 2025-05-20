@@ -41,9 +41,13 @@ On the HBM device side, as we’ve discussed, there are 1024 signals spread acro
 
 However, achieving optimal memory performance in systems with multiple HBM devices, each containing numerous channels is a complex undertaking. It necessitates significant empirical analysis and experimentation, an aspect we will explore in more detail later. For now, with this foundational understanding, we will proceed to examine the specific implementation and utilization of HBM in NVIDIA's A100 and H100 GPUs.
 
-### HBM Implementation in A100 & H100 GPUs
+### HBM Implementation in Ampere & Hooper GPUs
+
+NVIDIA's recent Ampere and Hopper GPU architectures both incorporate six HBM devices in their design. However, it's noteworthy that in many configurations, only five of these six devices are actively utilized on the platform.
 
 ![](/images/Nvidia-HBM.png "HBM Device in A100 and H100")
+
+The table below outlines the specific HBM configurations for NVIDIA’s A100 (Ampere), H100, and H200 (Hopper) GPUs. The A100 utilizes HBM2e, while the Hopper architecture features HBM3 in the H100 and the advanced HBM3E in the H200. As previously discussed, each individual HBM stack is equipped with a 1024-bit-wide bus. The total HBM capacity spans from 40 GB to 144 GB, with bandwidth ranging from 300 GB/s to an impressive 4.8 TB/s. Examining the table, you can observe how architectural advancements in HBM—such as higher device densities, increased clock speeds, and improved fabrication processes—have significantly enhanced NVIDIA’s memory capabilities. These improvements are crucial for delivering the memory bandwidth and capacity demanded by modern AI workloads, granting NVIDIA GPUs a distinct performance advantage.
 
 ![](/images/Nvidia-HBM-Parameters.png "HBM Configuration")
 
