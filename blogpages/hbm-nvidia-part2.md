@@ -89,6 +89,8 @@ With this foundational background established, let's now transition to examining
 
 ### HBM Bandwidth Under the Lens: Threads, SMs, and Beyond
 
+![A100 HBM BW Profile](/images/A100-HBM-BW-Chart1.png "A100 HBM2E BW")
+![H200 HBM BW Profile](/images/H200-HBM-BW-Chart1.png "H200 HBM3E BW")
 
 ### Resources to explore
 #### HBM Architecture
