@@ -91,6 +91,8 @@ With this foundational background established, let's now transition to examining
 
 ![A100 HBM BW Profile](/images/A100-HBM-BW-Chart1.png "A100 HBM2E BW")
 ![H200 HBM BW Profile](/images/H200-HBM-BW-Chart1.png "H200 HBM3E BW")
+![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
+![HBM BW Grid Size](/images/HBM-BW-GS-Increase-Chart.png "HBM BW Grid Size")
 
 ### Resources to explore
 #### HBM Architecture
