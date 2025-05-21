@@ -93,6 +93,8 @@ With this foundational background established, let's now transition to examining
 ![H200 HBM BW Profile](/images/H200-HBM-BW-Chart1.png "H200 HBM3E BW")
 ![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
 ![HBM BW Grid Size](/images/HBM-BW-GS-Increase-Chart.png "HBM BW Grid Size")
+![HBM Rd BW Async](/images/HBM-Rd-Async.png "HBM Read BW memcpy_async")
+![HBM Wr BW Async](/images/HBM-Wr-Async.png "HBM Write BW memcpy_async")
 
 ### Resources to explore
 #### HBM Architecture
