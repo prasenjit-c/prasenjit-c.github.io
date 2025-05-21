@@ -74,7 +74,7 @@ While these steps appear straightforward in determining the final memory destina
 - One approach could assign the first 8 GB of the address space to the first HBM device, the next 8 GB to the second, and so forth.
 - Another approach could interleave memory at a fine granularity, such as at a cache-line level (e.g., 128 bytes). In this case, the first 128 bytes could go to one HBM device, the next 128 bytes to another, cycling through all devices before looping back.<br>
 
-Each approach has distinct pros and cons regarding locality, load balancing, and contention. A practical solution likely lies in between, involving block-sized address ranges mapped to specific HBMs, with interleaving at a coarser granularity.
+   Each approach has distinct pros and cons regarding locality, load balancing, and contention. A practical solution likely lies in between, involving block-sized address ranges mapped to specific HBMs, with interleaving at a coarser granularity.
 
 1. Mapping within an HBM Device:<br>
 Extending this further, once an HBM device is selected, the exact mapping scheme for a particular channel, and subsequently, the bank and rows within that channel, becomes another crucial consideration. This includes architectural choices such as whether an open-page or closed-page policy should be adopted, each impacting access latency and throughput.
