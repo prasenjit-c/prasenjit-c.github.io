@@ -89,6 +89,12 @@ With this foundational background established, let's now transition to examining
 
 ### HBM Bandwidth Under the Lens: Threads, SMs, and Beyond
 
+To conduct the experiments and analyze HBM performance, I utilized a set of CUDA kernels. Starting with the benchmark code available at [RRZE-HPC GPU Benches](https://github.com/RRZE-HPC/gpu-benches/tree/1038c5d0d0f48cfe9912930d34eb2d8a31b72b9b/gpu-stream), I modified it to suit the specific needs of this study. The modifications allow for various bandwidth sensitivity analyses and the generation of NSight profiling reports. You can find the customized source code in my [GitHub repository](https://github.com/prasenjit-c/cuda-tests.git). The repository includes all the necessary instructions for building and executing the program. Additionally, I will provide a detailed guide to reproduce these experiments at the end of this blog post.
+
+The benchmark program comprises two primary kernels: a read kernel and a write kernel. The overall structure and logic closely resemble the program analyzed in [Part 1](https://prasenjit-c.github.io/blogpages/hbm-nvidia-part1) of this series.
+
+For this study, I conducted experiments on the Ampere A100 GPU and the Hopper H200 GPU, which is part of the Grace Hopper GH200 system. With this experimental setup in mind, let's now dive into the performance results and commence our analysis.
+
 ![A100 HBM BW Profile](/images/A100-HBM-BW-Chart1.png "A100 HBM2E BW")
 ![H200 HBM BW Profile](/images/H200-HBM-BW-Chart1.png "H200 HBM3E BW")
 ![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
