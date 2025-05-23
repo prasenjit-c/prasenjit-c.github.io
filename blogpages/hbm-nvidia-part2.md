@@ -93,10 +93,15 @@ To conduct the experiments and analyze HBM performance, I utilized a set of CUDA
 
 The benchmark program comprises two primary kernels: a read kernel and a write kernel. The overall structure and logic closely resemble the program analyzed in [Part 1](https://prasenjit-c.github.io/blogpages/hbm-nvidia-part1) of this series.
 
-For this study, I conducted experiments on the Ampere A100 GPU and the Hopper H200 GPU, which is part of the Grace Hopper GH200 system. With this experimental setup in mind, let's now dive into the performance results and commence our analysis.
+For this study, I conducted experiments on the Ampere A100 GPU and the Hopper H200 GPU, which is part of the Grace Hopper GH200 system. Note that the GH200 system I've used has only 5 of the HBM devices avtive. Let's now dive into the performance results and commence our analysis.
+
+The two charts below illustrate the read and write bandwidth achieved by executing our kernel on the A100 and H200 GPUs, respectively. The x-axis represents increasing GPU occupancy, which is achieved by varying the block and grid sizes, while the y-axis shows the percentage of the theoretical maximum bandwidth attained for each occupancy level. It's important to note that the H200 has a significantly different maximum theoretical bandwidth than the A100.
 
 ![A100 HBM BW Profile](/images/A100-HBM-BW-Chart1.png "A100 HBM2E BW")
 ![H200 HBM BW Profile](/images/H200-HBM-BW-Chart1.png "H200 HBM3E BW")
+
+The overall shape of the charts is quite similar, revealing some intriguing patterns. In general, the write operations achieve slightly higher maximum bandwidth utilization, reaching around 95% for most thread and block size combinations. On the other hand, read operations typically max out at approximately 90% of the available HBM bandwidth. Another notable distinction is that write operations can saturate HBM bandwidth more easily, requiring fewer threads and SMs to achieve peak performance. One particularly interesting feature of the charts is the stepped appearance of the curves, especially prominent in the read bandwidth results for both the A100 and H200. The underlying reasons for this phenomenon will be analyzed and explained later in this discussion. Given the complexity of these systems and the sheer magnitude of their bandwidth capabilities, achieving 90–95% of the theoretical maximum bandwidth is an impressive feat. This clearly highlights why HBM continues to dominate and lead in the AI market.
+
 ![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
 ![HBM BW Grid Size](/images/HBM-BW-GS-Increase-Chart.png "HBM BW Grid Size")
 ![HBM Rd BW Async](/images/HBM-Rd-Async.png "HBM Read BW memcpy_async")
