@@ -26,6 +26,7 @@ An HBM device is constructed using these individual stacks, as illustrated in th
 ![](/images/hbm-device-stack.png "HBM Device")
 
 It's important to note that increasing the number of stacks primarily enhances the overall memory capacity and expands the number of bank groups and banks within the device, which can improve bank-level parallelism. However, adding more stacks does not inherently increase the peak memory bandwidth of the HBM device itself.
+* BW = DataRate x 1024 (bits/sec) = DataRate x 1024/8 (Bytes/sec) 
 
 A natural question arises: how do HBM architectures achieve generational improvements in both bandwidth and memory capacity? As you might have guessed, these advancements are driven by increases in clock speed and device density, made possible through improvements in manufacturing processes. The table below summarizes the evolution of HBM, from its inception to HBM4, detailing the key parameters that have changed with each generation to enhance the architecture. Please refer the resources provided below if you want to dig deeper in these areas.
 
