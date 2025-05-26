@@ -119,8 +119,19 @@ The chart below now illustrates the HBM bandwidth variation as we scale the grid
 
 First, let's analyze the write bandwidth with the A100. Assuming a single SM can achieve approximately 45 GB/s (as observed previously), to reach the A100's peak bandwidth of 1555 GB/s, we would theoretically need 1555/45≈34 SMs. Visually inspecting the chart, the sharp ramp in write bandwidth indeed appears to reach its maximum around this figure. Repeating this calculation for the H200 (assuming 63 GB/s per SM), we find that 4000/63≈64 SMs would be required to achieve maximum bandwidth, which again aligns well with the chart's ramp-up.
 
-Applying the same logic to the read bandwidth, for the A100, the calculation 
-1555/16 suggests a required grid size of approximately 98 SMs, while for the H200, 4000/21 suggests around 190 SMs. Comparing these calculations with the experimental results from the chart, there is a slight discrepancy: the maximum read bandwidth is achieved at a grid size of around 108 SMs for the A100 and 264 SMs for the H200. While these values are "off" by about 10-20%, they still broadly confirm that read operations require a significantly higher number of SMs to saturate HBM bandwidth compared to write operations. Interestingly, achieving maximum read bandwidth requires the utilization of all available SMs. This observation reveals that each SM is designed to achieve a bandwidth capacity proportionally higher than what would be required if all SMs were simultaneously performing memory operations at maximum speed. This design choice accounts for the fact that, in most CUDA kernels, not all warps are fully dedicated to memory operations. As a result, additional bandwidth headroom is allocated to each SM to ensure flexibility and optimal performance. This approach is consistent with how performance headroom is often engineered in large, multi-core CPU clusters as well.
+Applying the same logic to the read bandwidth, for the A100, the calculation 1555/16 suggests a required grid size of approximately 98 SMs, while for the H200, 4000/21 suggests around 190 SMs. Comparing these calculations with the experimental results from the chart, there is a discrepancy: the maximum read bandwidth is achieved at a grid size of around 216 SMs for the A100 and 264 SMs for the H200. To make sense of these numbers, consider the following table.
+
+|Parameters|Ampere|Hooper|
+|----------------------|---- |----|
+|Total SM|108|132|
+|Max Thread Block Size|1024|1024|
+|Max Thread per SM|2048|2048|
+
+Given that the maximum threads per block in our experiment was set to 1024 (a deliberate choice for this reason), and knowing that an SM on these architectures can support a maximum of 2048 concurrent threads, each SM in our setup could concurrently schedule at most two thread blocks. Interestingly, achieving the maximum read bandwidth necessitates utilizing all available SMs and their threads:
+* A100: 108 SMs × 2 Blocks = 216 Blocks
+* H200: 132 SMs × 2 Blocks = 264 Blocks
+
+This observation reveals that each individual SM is designed to achieve a bandwidth capacity proportionally higher than what would be required if all SMs were simultaneously performing memory operations at maximum speed. This design choice accounts for the fact that, in most CUDA kernels, not all warps are fully dedicated to memory operations. As a result, additional bandwidth headroom is allocated to each SM to ensure flexibility and optimal performance. This approach is consistent with how performance headroom is often engineered in large, multi-core CPU clusters as well.
 
 A critical observation from this chart is the sharp decrease in both read and write bandwidth at certain specific grid sizes, as explicitly marked. This phenomenon is a well-known characteristic within CUDA and GPU programming, and I will delve into its detailed explanation below. As in previous analyses, I profiled the program at the indicated grid sizes using NVIDIA NSight Compute, examining its reports and suggestions. My key observations are presented here:
 
