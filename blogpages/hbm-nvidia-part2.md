@@ -126,6 +126,9 @@ A critical observation from this chart is the sharp decrease in both read and wr
 ![HBM Rd BW Async](/images/HBM-Rd-Async.png "HBM Read BW memcpy_async")
 ![HBM Wr BW Async](/images/HBM-Wr-Async.png "HBM Write BW memcpy_async")
 
+[Finally, the table below is from a SemiAnalysis report on the availability of HBM into  contemporary GPU systems, offering valuable insight into the industry's adoption and scaling of High Bandwidth Memory.](https://semianalysis.com/2025/05/23/amd-vs-nvidia-inference-benchmark-who-wins-performance-cost-per-million-tokens)
+![HBM of GPU Systems](/images/GPU-HBM-All.png)
+
 ### Resources to explore
 #### HBM Architecture
 [Wikipedia](https://en.wikipedia.org/wiki/High_Bandwidth_Memory)
