@@ -143,10 +143,21 @@ Now that we have a solid understanding of the bandwidth achievable in these GPUs
 1. Overlap of Compute and Data Transfer: Programmers can better overlap compute and memory operations, reducing idle GPU time.
 1. Pipeline Optimization: It facilitates effective pipelining techniques, improving overall performance.
 
-In the following section, we will explore whether utilizing asynchronous memcpy can indeed lead to tangible performance improvements and what those gains truly signify.
+In the following section, we will explore whether utilizing asynchronous memcpy can indeed lead to tangible performance improvements and what those gains truly signify. To evaluate and gauge the hardware efficiency improvements brought by asynchronous memory copy, I made minimal modifications to the original kernels and introduced the memcpy_async API call. The updated structure of the kernel is depicted in the figure below. For reference, the modified program is available in the same [GitHub repository](https://github.com/prasenjit-c/cuda-tests.git).
+
+![memcpy_async API](/images/memcpy_async.png "Transformed code")
+
+Using this updated program, I repeated the experiments conducted earlier and obtained the read and write bandwidth measurements for both the A100 and H200 GPUs. The resulting charts are presented below.
 
 ![HBM Rd BW Async](/images/HBM-Rd-Async.png "HBM Read BW memcpy_async")
+
+First, let’s analyze the read bandwidth improvement when comparing the original program to the version utilizing memcpy_async. The charts reveal that asynchronous memory copy significantly reduces the GPU resources required to achieve the maximum HBM bandwidth. Specifically, for both the A100 and H200, only 50% of GPU occupancy is now needed to reach full read bandwidth. This represents a substantial gain. Previously, with the traditional approach, the A100 achieved only about 77% of its HBM bandwidth at 50% GPU occupancy. With asynchronous memcpy, this jumps to almost 91% of the bandwidth. For the H200, the improvement is even more dramatic, escalating from approximately 61% to around 93%. Furthermore, for the H200, asynchronous memcpy enables us to achieve a higher overall maximum HBM bandwidth compared to the traditional method, which previously topped out at roughly 87%.
+
 ![HBM Wr BW Async](/images/HBM-Wr-Async.png "HBM Write BW memcpy_async")
+
+In contrast to read operations, a comparison of the write bandwidth charts reveals no apparent improvement in peak write bandwidth or reduction in GPU utilization when using memcpy_async.
+
+However, it is crucial to note that even without a direct increase in peak bandwidth, employing memcpy_async for writes significantly reduces register pressure on the GPU. This architectural benefit can lead to an overall improvement in kernel performance, particularly in compute-bound scenarios or when memory operations are intertwined with computation. Therefore, my strong recommendation is to leverage asynchronous memcpy as extensively as possible when writing CUDA kernels to achieve the most efficient memory access code.
 
 Finally, the table below is from a [SemiAnalysis report](https://semianalysis.com/2025/05/23/amd-vs-nvidia-inference-benchmark-who-wins-performance-cost-per-million-tokens) on the availability of HBM into  contemporary GPU systems, offering valuable insight into the industry's adoption and scaling of High Bandwidth Memory
 ![HBM of GPU Systems](/images/GPU-HBM-All.png)
