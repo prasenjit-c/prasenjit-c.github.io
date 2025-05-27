@@ -139,6 +139,12 @@ A critical observation from this chart is the sharp decrease in both read and wr
 
 In essence, the addition of just one extra thread block, creating a partial "wave" of execution, becomes a significant bottleneck, disproportionately impacting overall kernel runtime and, consequently, measured bandwidth.
 
+Now that we have a solid understanding of the bandwidth achievable in these GPUs, it is essential to address a fundamental question: if GPUs are heavily utilized for transferring data from memory, what resources are left for compute tasks? Can this be improved? If you're thinking along these lines, you're on the right track. NVIDIA recognized this challenge and, starting with CUDA 11 and the Ampere architecture, introduced a powerful feature: **Asynchronous Memcpy**. Without delving too deeply into the specifics (which can be thoroughly explored in [Controlling Data Movement to Boost Performance on the NVIDIA Ampere Architecture](https://developer.nvidia.com/blog/controlling-data-movement-to-boost-performance-on-ampere-architecture/#:~:text=With%20cuda%3A%3Amemcpy_async%20%2C%20data,be%20overlapped%20with%20thread%20execution.)) here’s a summary of how asynchronous memory copy works. In a traditional memory read operation, as we've discussed so far, data typically moves from HBM to L2 cache, then to L1 cache, and finally to registers for operation (or potentially copied back to shared memory). Asynchronous memory copy, however, allows the programmer to initiate data transfers directly from HBM to shared memory, bypassing registers. Crucially, this operation is non-blocking, meaning it does not halt the execution of compute threads, hence its "asynchronous" nature. This innovation unlocks several performance advantages:
+1. Overlap of Compute and Data Transfer: Programmers can better overlap compute and memory operations, reducing idle GPU time.
+1. Pipeline Optimization: It facilitates effective pipelining techniques, improving overall performance.
+
+In the following section, we will explore whether utilizing asynchronous memcpy can indeed lead to tangible performance improvements and what those gains truly signify.
+
 ![HBM Rd BW Async](/images/HBM-Rd-Async.png "HBM Read BW memcpy_async")
 ![HBM Wr BW Async](/images/HBM-Wr-Async.png "HBM Write BW memcpy_async")
 
