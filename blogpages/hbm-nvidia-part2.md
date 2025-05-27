@@ -94,7 +94,7 @@ To conduct the experiments and analyze HBM performance, I utilized a set of CUDA
 
 The benchmark program comprises two primary kernels: a read kernel and a write kernel. The overall structure and logic closely resemble the program analyzed in [Part 1](https://prasenjit-c.github.io/blogpages/hbm-nvidia-part1) of this series.
 
-For this study, I conducted experiments on the Ampere A100 GPU and the Hopper H200 GPU, which is part of the Grace Hopper GH200 system. Note that the GH200 system I've used has only 5 of the HBM devices avtive. Let's now dive into the performance results and commence our analysis.
+For this study, I conducted experiments on the Ampere A100 GPU and the Hopper H200 GPU, which is part of the Grace Hopper GH200 system. Note that the GH200 system I've used has the memory speed same as H100 and that limits the maximum BW to approximately 4000 GB/s. Let's now dive into the performance results and commence our analysis.
 
 The two charts below illustrate the read and write bandwidth achieved by executing our kernel on the A100 and H200 GPUs, respectively. The x-axis represents increasing GPU occupancy, which is achieved by varying the block and grid sizes, while the y-axis shows the percentage of the theoretical maximum bandwidth attained for each occupancy level. It's important to note that the H200 has a significantly different maximum theoretical bandwidth than the A100.
 
@@ -111,7 +111,7 @@ The chart below illustrates how HBM bandwidth behaves when utilizing only a sing
 
 ![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
 
-This behavior prompts two key questions: why is the bandwidth limited to such a relatively small value in both cases, and why does write bandwidth saturate so quickly? To answer these questions, we turn to NVIDIA NSight Compute. By profiling executions for specific configurations, I've derived the following summary:
+This behavior prompts two key questions: why is the bandwidth limited to such a relatively small value in both cases, and why does write bandwidth saturate so quickly? The limitations of a single SM primarily stem from constraints imposed by the L1 cache subsystem. NVIDIA’s Nsight Compute identifies that warps face scheduling delays due to **"Long Scoreboard Stalls"** primarily caused by the L1 cache being unable to process requests quickly enough. On average, warps experience approximately 60 cycles of wait time for read operations and 20 cycles for write operations due to these stalls. For write operations, data is produced within the warps and then sent to the L1 cache, eventually proceeding to the L2 cache. This results in very high L1 utilization, often approaching 100%, which directly contributes to the observed limitation in saturating write bandwidth. In the case of read operations, data must traverse the path from HBM to L2, and then be funneled through a single L1 cache, which again becomes the limiting factor. In summary, it appears NVIDIA's designers and architects may have provisioned the L1 cache to support a specific, limited amount of bandwidth, consistent with the single-SM performance depicted in our charts.
 
 Now that we have a solid understanding of the limitations a single SM faces in achieving maximum HBM bandwidth, let’s extrapolate this to determine how many SMs—or, more precisely, the required grid size—are needed to saturate the full bandwidth.
 
