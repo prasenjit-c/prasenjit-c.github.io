@@ -181,9 +181,24 @@ However, it is crucial to note that even without a direct increase in peak bandw
 Finally, the table below is from a [SemiAnalysis report](https://semianalysis.com/2025/05/23/amd-vs-nvidia-inference-benchmark-who-wins-performance-cost-per-million-tokens) on the availability of HBM into  contemporary GPU systems, offering valuable insight into the industry's adoption and scaling of High Bandwidth Memory
 ![HBM of GPU Systems](/images/GPU-HBM-All.png)
 
+### Complete Profile Data
+
+Following commands used to generate the complete Read and Write BW charts:<br>
+`./hbm_stream.exe`<br>
+`./hbm_stream_async.exe`<br>
+
+Following command is used to generate the NSight profile for a specfic grid and block size
+`sudo ncu --set full -o [profile-name] ./hbm_stream.exe [Kernel Type (0 | 1)] [Grid Size] [Block Size]`<br>
+
+Complete Data is avilable as a CSV file for easier analysis.
+
+[Full-HBM-BW-Data](/blogpages/hbm-part2-full-data.xlsx)
+
 ### Resources to explore
 #### HBM Architecture
 [Wikipedia](https://en.wikipedia.org/wiki/High_Bandwidth_Memory)
 [Rambus](https://www.rambus.com/blog_category/hbm-and-gddr6/)
 [Micron](https://www.micron.com/products/memory/hbm)
 [SKHynix](https://product.skhynix.com/products/dram/hbm.go)
+#### NVIDIA GPU
+[GTC 2025](https://www.nvidia.com/en-us/on-demand/session/gtc25-S72683/)
