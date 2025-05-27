@@ -105,6 +105,8 @@ The overall shape of the charts is quite similar, revealing some intriguing patt
 
 Analyzing the overall chart, it becomes apparent that three distinct portions warrant deeper investigation. First, we will focus on the lower-left section, where GPU occupancy is very low, corresponding to scenarios with a single SM as we gradually increase the block size. Next, we will examine how HBM bandwidth scales as the grid size increases, eventually reaching near-maximum levels. Lastly, we will delve into the sudden drops in HBM bandwidth observed in the chart, exploring their causes and implications.
 
+#### The Limitation of a Single SM
+
 The chart below illustrates how HBM bandwidth behaves when utilizing only a single Streaming Multiprocessor (SM). As we increase the block size from 32 threads up to 1024, the bandwidth generally continues to rise, reaching approximately 16 GB/s for the A100 and 21 GB/s for the H200. However, a notable difference emerges when comparing read and write operations: write bandwidth increases much faster than read bandwidth. For writes, saturation is observed remarkably early, often around 160-192 threads, beyond which a single SM is unable to scale the bandwidth any further.
 
 ![Single SM HBM BW](/images/HBM-BW-1SM-Chart.png "HBM BW Single SM")
@@ -112,6 +114,8 @@ The chart below illustrates how HBM bandwidth behaves when utilizing only a sing
 This behavior prompts two key questions: why is the bandwidth limited to such a relatively small value in both cases, and why does write bandwidth saturate so quickly? To answer these questions, we turn to NVIDIA NSight Compute. By profiling executions for specific configurations, I've derived the following summary:
 
 Now that we have a solid understanding of the limitations a single SM faces in achieving maximum HBM bandwidth, let’s extrapolate this to determine how many SMs—or, more precisely, the required grid size—are needed to saturate the full bandwidth.
+
+#### Beyond a Single SM: Scaling for HBM BW Saturation
 
 The chart below now illustrates the HBM bandwidth variation as we scale the grid size, and consequently, the number of active Streaming Multiprocessors (SMs). With the y-axis now representing an absolute scale, it's immediately evident that the H200 system delivers significantly higher bandwidth compared to the A100.
 
@@ -138,6 +142,8 @@ A critical observation from this chart is the sharp decrease in both read and wr
 **NVIDIA NSight Compute accurately identifies and summarizes the bottleneck:** _"A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 1 thread blocks. Under the assumption of a uniform execution duration of all thread blocks, this partial wave may account for up to 50.0% of the total runtime of this kernel. Try launching a grid with no partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for a grid."_
 
 In essence, the addition of just one extra thread block, creating a partial "wave" of execution, becomes a significant bottleneck, disproportionately impacting overall kernel runtime and, consequently, measured bandwidth.
+
+#### Compute-Memory Overlap: The Async Memcpy Advantage
 
 Now that we have a solid understanding of the bandwidth achievable in these GPUs, it is essential to address a fundamental question: if GPUs are heavily utilized for transferring data from memory, what resources are left for compute tasks? Can this be improved? If you're thinking along these lines, you're on the right track. NVIDIA recognized this challenge and, starting with CUDA 11 and the Ampere architecture, introduced a powerful feature: **Asynchronous Memcpy**. Without delving too deeply into the specifics (which can be thoroughly explored in [Controlling Data Movement to Boost Performance on the NVIDIA Ampere Architecture](https://developer.nvidia.com/blog/controlling-data-movement-to-boost-performance-on-ampere-architecture/#:~:text=With%20cuda%3A%3Amemcpy_async%20%2C%20data,be%20overlapped%20with%20thread%20execution.)) here’s a summary of how asynchronous memory copy works. In a traditional memory read operation, as we've discussed so far, data typically moves from HBM to L2 cache, then to L1 cache, and finally to registers for operation (or potentially copied back to shared memory). Asynchronous memory copy, however, allows the programmer to initiate data transfers directly from HBM to shared memory, bypassing registers. Crucially, this operation is non-blocking, meaning it does not halt the execution of compute threads, hence its "asynchronous" nature. This innovation unlocks several performance advantages:
 1. Overlap of Compute and Data Transfer: Programmers can better overlap compute and memory operations, reducing idle GPU time.
