@@ -187,7 +187,7 @@ Following commands used to generate the complete Read and Write BW charts:<br>
 `./hbm_stream.exe`<br>
 `./hbm_stream_async.exe`<br>
 
-Following command is used to generate the NSight profile for a specfic grid and block size
+Following command is used to generate the NSight profile for a specfic grid and block size<br>
 `sudo ncu --set full -o [profile-name] ./hbm_stream.exe [Kernel Type (0 | 1)] [Grid Size] [Block Size]`<br>
 
 Complete Data is avilable as a CSV file for easier analysis.
