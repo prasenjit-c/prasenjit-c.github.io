@@ -20,8 +20,8 @@ The total elements read from HBM are (M×K)+(K×N), and the total elements writt
 
 * Total FLOPs = 2×M×N×K
 * Total Memory Transfers = (M×K + K×N + M×N) * sizeof(element)
-* \[ \text{AMI} = \frac{\text{Total FLOPs}}{\text{Total Memory Transfers}} \]
-* Asymptotically, \[ \text{AMI} \approx \frac{2N^3}{3N^2} \approx O(N) \]
+* $ \text{AMI} = \frac{\text{Total FLOPs}}{\text{Total Memory Transfers}} $
+* Asymptotically, $ \text{AMI} \approx \frac{2N^3}{3N^2} \approx O(N) $
 
 This asymptotic analysis reveals that as the size of the matrices increases, GEMM becomes more compute-bound. Consequently, memory bandwidth is typically not a major performance bottleneck for large matrices. However, for smaller matrices, memory access latency and bandwidth play a significant role in overall performance, making it challenging to fully utilize the GPU's compute capabilities.
 
