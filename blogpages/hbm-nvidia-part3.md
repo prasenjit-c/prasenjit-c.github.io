@@ -1,3 +1,7 @@
+---
+layout: post
+---
+
 ** **
 ## Part 3 - From Theory to Practice: HBM in GEMM Workloads
 
