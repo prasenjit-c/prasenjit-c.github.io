@@ -30,3 +30,11 @@ The total elements read from HBM are (M×K)+(K×N), and the total elements writt
 This asymptotic analysis reveals that as the size of the matrices increases, GEMM becomes more compute-bound. Consequently, memory bandwidth is typically not a major performance bottleneck for large matrices. However, for smaller matrices, memory access latency and bandwidth play a significant role in overall performance, making it challenging to fully utilize the GPU's compute capabilities.
 
 With the roofline model established, we can now use it as a reference to evaluate how GEMM actually performs on NVIDIA GPUs.
+
+### NVIDIA BLAS
+
+Like other major hardware vendors, NVIDIA provides highly optimized implementations of BLAS (Basic Linear Algebra Subprograms) routines. In the NVIDIA ecosystem, CUTLASS and cuBLAS are the two primary libraries widely adopted as backends for performing GEMM operations across a variety of software platforms.
+
+In this post, our focus will be on analyzing GEMM performance using cuBLAS.
+
+For further details, you can refer to the official [cuBLAS documentation](https://docs.nvidia.com/cuda/cublas/index.html) and the [GEMM function API reference](https://docs.nvidia.com/cuda/cublas/#cublas-t-gemm).
