@@ -5,5 +5,7 @@ description: Compter Architecture and Performance Knowhow
 
 markdown: kramdown
 kramdown:
+  input: GFM
   math_engine: mathjax
+
 
