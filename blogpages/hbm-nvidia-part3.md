@@ -38,3 +38,5 @@ Like other major hardware vendors, NVIDIA provides highly optimized implementati
 In this post, our focus will be on analyzing GEMM performance using cuBLAS.
 
 For further details, you can refer to the official [cuBLAS documentation](https://docs.nvidia.com/cuda/cublas/index.html) and the [GEMM function API reference](https://docs.nvidia.com/cuda/cublas/#cublas-t-gemm).
+
+To conduct this analysis, I created a GEMM program based on NVIDIA's [CUDALibrarySamples](https://github.com/NVIDIA/CUDALibrarySamples.git). My modified version, which includes switches for profiling and performance measurement, is available in my [GitHub repository](https://github.com/prasenjit-c/cuda-tests/tree/main/gemm).
