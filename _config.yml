@@ -2,3 +2,8 @@ theme: minima
 title: Prasenjit's Technical Blog
 author: Prasenjit Chakraborty
 description: Compter Architecture and Performance Knowhow
+
+markdown: kramdown
+kramdown:
+  math_engine: mathjax
+
