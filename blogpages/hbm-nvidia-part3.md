@@ -48,9 +48,11 @@ Now it’s time to move from setup to real measurements. There are many ways to 
 
 These two factors are critical because they directly influence how the GPU's tiling and memory access strategies are formed, ultimately affecting overall utilization.
 
-The figure below illustrates the classification of GEMM test cases used in this study. The accompanying table summarizes the roofline performance for these configurations, providing a reference for interpreting the measured results.
+The figure below illustrates the classification of GEMM test cases used in this study.
 
 ![](/images/hbm-part3-gemm-categories.png "GEMM Categories")
+
+With the A100 delivering 19.5 TFLOPS/sec in FP32 performance and 1,555 GB/sec of HBM2e bandwidth, and the H200 offering 67 TFLOPS/sec and 4,000 GB/sec of HBM3e bandwidth, we can use the roofline model to establish the performance bounds for GEMM.
 
 |Gemm Type|M|N|K|FMA|Memory Read (MB)|Memory Write (MB)|AMI|
 |----------------------|---- |----|----|----|----|----|----|
@@ -59,9 +61,9 @@ The figure below illustrates the classification of GEMM test cases used in this 
 |Skinny-Pow2|32,768|256|16,384|137,438,953,472|2,096|32|123|
 |Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
 
-A100 with FP32 performance of 19.5 TFLOPS/sec and 1,555 GB/sec HBM3 BW and H200 has 67 TFLOPS/sec and 4,000 GB/sec we have
 |Gemm|A100 T-Compute (msec)|A100 T-Memory (msec)| H200 T-Compute (msec)|H200 T-Memory (msec)|
 |---|----------------------------|----------------|----------------|---------------|
-|Square-Pow2|56.4|0.66|
-|Square-Prime|102.8|0.98|
-|Skinny-Pow2|
+|Square-Pow2|56.4|0.66|16.4|0.26|
+|Square-Prime|102.8|0.98|29.9|0.38|
+|Skinny-Pow2|14.1|1.37|4.1|0.53|
+|Skinny-Prime|16.5|1.35|4.8|0.52|
