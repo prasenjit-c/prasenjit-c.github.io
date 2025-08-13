@@ -40,3 +40,13 @@ In this post, our focus will be on analyzing GEMM performance using cuBLAS.
 For further details, you can refer to the official [cuBLAS documentation](https://docs.nvidia.com/cuda/cublas/index.html) and the [GEMM function API reference](https://docs.nvidia.com/cuda/cublas/#cublas-t-gemm).
 
 To conduct this analysis, I created a GEMM program based on NVIDIA's [CUDALibrarySamples](https://github.com/NVIDIA/CUDALibrarySamples.git). My modified version, which includes switches for profiling and performance measurement, is available in my [GitHub repository](https://github.com/prasenjit-c/cuda-tests/tree/main/gemm).
+
+### Performance Breakdown: GEMM on A100 and H200
+![](/images/hbm-part3-gemm-categories.png "GEMM Categories")
+
+|Gemm Type|M|N|K|FMA|Memory Read (MB)|Memory Write (MB)|AMI|
+|----------------------|---- |----|----|----|----|----|----|
+|Square-Pow2|8,192|8,192|8,192|549,755,813,888|758|256|1,024|
+|Square-Prime|10,007|10,007|10,007|1,002,101,470,343|1,146|382|1,251|
+|Skinny-Pow2|32,768|256|16,384|137,438,953,472|2,096|32|123|
+|Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
