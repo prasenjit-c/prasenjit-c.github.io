@@ -42,6 +42,14 @@ For further details, you can refer to the official [cuBLAS documentation](https:
 To conduct this analysis, I created a GEMM program based on NVIDIA's [CUDALibrarySamples](https://github.com/NVIDIA/CUDALibrarySamples.git). My modified version, which includes switches for profiling and performance measurement, is available in my [GitHub repository](https://github.com/prasenjit-c/cuda-tests/tree/main/gemm).
 
 ### Performance Breakdown: GEMM on A100 and H200
+Now it’s time to move from setup to real measurements. There are many ways to evaluate GEMM performance, but to keep this analysis focused, I considered two key dimensions for the GEMM matrices:
+1. Value patterns of M, N, and K – Whether they are “nice” powers of two or prime numbers.
+2. Matrix shapes – Whether they are square or “skinny” (highly rectangular).
+
+These two factors are critical because they directly influence how the GPU's tiling and memory access strategies are formed, ultimately affecting overall utilization.
+
+The figure below illustrates the classification of GEMM test cases used in this study. The accompanying table summarizes the roofline performance for these configurations, providing a reference for interpreting the measured results.
+
 ![](/images/hbm-part3-gemm-categories.png "GEMM Categories")
 
 |Gemm Type|M|N|K|FMA|Memory Read (MB)|Memory Write (MB)|AMI|
@@ -50,3 +58,5 @@ To conduct this analysis, I created a GEMM program based on NVIDIA's [CUDALibrar
 |Square-Prime|10,007|10,007|10,007|1,002,101,470,343|1,146|382|1,251|
 |Skinny-Pow2|32,768|256|16,384|137,438,953,472|2,096|32|123|
 |Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
+
+
