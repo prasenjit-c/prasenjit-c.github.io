@@ -59,4 +59,9 @@ The figure below illustrates the classification of GEMM test cases used in this 
 |Skinny-Pow2|32,768|256|16,384|137,438,953,472|2,096|32|123|
 |Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
 
-
+A100 with FP32 performance of 19.5 TFLOPS/sec and 1,555 GB/sec HBM3 BW and H200 has 67 TFLOPS/sec and 4,000 GB/sec we have
+|Gemm|A100 T-Compute (msec)|A100 T-Memory (msec)| H200 T-Compute (msec)|H200 T-Memory (msec)|
+|---|----------------------------|----------------|----------------|---------------|
+|Square-Pow2|56.4|0.66|
+|Square-Prime|102.8|0.98|
+|Skinny-Pow2|
