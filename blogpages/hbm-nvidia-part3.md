@@ -67,3 +67,12 @@ With the A100 delivering 19.5 TFLOPS/sec in FP32 performance and 1,555 GB/sec of
 |Square-Prime|102.8|0.98|29.9|0.38|
 |Skinny-Pow2|14.1|1.37|4.1|0.53|
 |Skinny-Prime|16.5|1.35|4.8|0.52|
+
+As the table indicates, GEMM is predominantly compute-bound, with memory transfer time contributing only a negligible portion to the overall execution time. The next step is to verify how well this theoretical expectation holds when running on actual GPUs.
+
+The figure below presents the measured execution times for the four GEMM variants on the A100 and H200 GPUs. For both architectures, the measured results follow the general trend predicted by the roofline model. The two lines in the figure represent the achieved efficiency on each GPU, plotted against the secondary axis.
+![](/images/hbm-part3-gemm-perf.png "GEMM Performance")
+
+A key observation is that square matrices consistently outperform their skinny counterparts. More importantly, GEMM variants with dimensions that are a power of two significantly outperform those with prime-sized dimensions. This is clearly depicted by the efficiency lines, where the performance of the "skinny prime" variant shows a notable drop from its theoretical roofline.
+Another interesting finding is the performance deviation between the two GPUs. While the H200 performs approximately 2.4-2.7x better than the A100, its efficiency is considerably lower than the theoretical 3.4x performance improvement suggested by the specifications.
+We will investigate these deviations in detail to understand where the performance bottlenecks arise and how HBM contributes to—or limits—GEMM throughput.
