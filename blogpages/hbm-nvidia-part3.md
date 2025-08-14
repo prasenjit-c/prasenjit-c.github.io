@@ -61,7 +61,8 @@ With the A100 delivering 19.5 TFLOPS/sec in FP32 performance and 1,555 GB/sec of
 |Skinny-Pow2|32,768|256|16,384|137,438,953,472|2,096|32|123|
 |Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
 
-|Gemm|A100 T-Compute (msec)|A100 T-Memory (msec)| H200 T-Compute (msec)|H200 T-Memory (msec)|
+|Gemm|A100 ||H200 ||
+|^|T-Compute (msec)|T-Memory (msec)|T-Compute (msec)|T-Memory (msec)|
 |---|----------------------------|----------------|----------------|---------------|
 |Square-Pow2|56.4|0.66|16.4|0.26|
 |Square-Prime|102.8|0.98|29.9|0.38|
