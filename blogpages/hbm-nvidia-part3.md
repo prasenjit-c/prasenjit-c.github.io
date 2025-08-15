@@ -76,4 +76,9 @@ The figure below presents the measured execution times for the four GEMM variant
 
 A key observation is that square matrices consistently outperform their skinny counterparts. More importantly, GEMM variants with dimensions that are a power of two significantly outperform those with prime-sized dimensions. This is clearly depicted by the efficiency lines, where the performance of the "skinny prime" variant shows a notable drop from its theoretical roofline.
 Another interesting finding is the performance deviation between the two GPUs. While the H200 performs approximately 2.4-2.7x better than the A100, its efficiency is considerably lower than the theoretical 3.4x performance improvement suggested by the specifications.
-We will investigate these deviations in detail to understand where the performance bottlenecks arise and how HBM contributes to—or limits—GEMM throughput.
+We will investigate these deviations in detail to understand where the performance bottlenecks arise and how HBM contributes to or limits GEMM throughput.
+
+As is consistent with this blog post, we will now invoke NSight Compute to profile our GEMM workloads and gain a deeper understanding of their performance, with a special focus on memory behavior.
+
+The table below summarizes the kernel invocations, showing how cuBLAS configures the GPU and tiles the workload into thread blocks and grids. As seen here, the choice of grid size is influenced by both the GPU architecture and the shape and size of the matrices. The only consistent element across all configurations is that each thread block contains 256 threads, regardless of the specific grid dimensions. This distribution is determined by cuBLAS's internal algorithm, which evaluates multiple parameters—including matrix dimensions, tiling strategies, and GPU hardware limits to decide the optimal grid configuration and launches specific kernels to achieve the best possible performance.
+![](/images/hbm-part3-kernel-invocation.png "Kernel Invocation")
