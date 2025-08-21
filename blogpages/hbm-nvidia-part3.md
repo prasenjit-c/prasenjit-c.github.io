@@ -62,7 +62,7 @@ With the A100 delivering 19.5 TFLOPS/sec in FP32 performance and 1,555 GB/sec of
 |Skinny-Prime|30,011|307|17,497|161,206,457,369|2,059|35|147|
 
 |Gemm|A100 ||H200 ||
-|^|T-Compute (msec)|T-Memory (msec)|T-Compute (msec)|T-Memory (msec)|
+||T-Compute (msec)|T-Memory (msec)|T-Compute (msec)|T-Memory (msec)|
 |---|----------------------------|----------------|----------------|---------------|
 |Square-Pow2|56.4|0.66|16.4|0.26|
 |Square-Prime|102.8|0.98|29.9|0.38|
@@ -87,3 +87,20 @@ Next, let’s compare the actual amount of compute and memory transfer performed
 ![](/images/hbm-part3-perf-compare-roofline.png "vs Roofline")
 
 The number of FMAs aligns almost exactly with the roofline model, indicating that there are no superfluous computations. This suggests that the SASS code produced and the overall strategy employed are highly efficient in terms of computational volume. However, the same consistency is not observed for memory transfers. For both GPUs, the total amount of memory moved is significantly higher than the theoretical size of the input matrices. The only exception is the Square-Pow2 GEMM case on the H200. The HBM store volume for the output matrix closely matches the roofline expectation. This suggests that cuBLAS tiles the output matrix and, for each tile, completes the full computation before writing it back to HBM. The large observed HBM transfers cause the Arithmetic Intensity (AI) to drop well below the roofline value. Even with this drop the oevrall achieved AMI is sufficiently high. This behavior demonstrates a crucial optimization: for compute-bound dense GEMM kernels, the underlying architecture leverages memory bandwidth to perform multiple data transfers in the shadow of computation, ensuring the compute units are continuously busy and memory never becomes the critical performance bottleneck.
+
+### The Role of HBM in GEMM
+Let’s try to understand how much performance advantage HBM actually provides in GEMM. This is not straightforward to generalize, since large dense GEMM operations are primarily compute-bound rather than memory-bound. A deeper look into the memory hierarchy reveals how crucial HBM is in enabling this performance.
+
+The figure below shows the compute and memory hierarchy throughput utilization. While compute throughput achieves a high utilization of 85–95%, the memory hierarchy utilization progressively declines: L1 delivers 45–55%, L2 about 15–20%, and finally HBM only 5–10%. This indicates that as the matrices are tiled and fetched from HBM, the underlying cuBLAS algorithm maximizes FLOPs per tile, ensuring that compute remains saturated.
+![](/images/hbm-part3-throughput.png "Throughput Utilization")
+
+The table below, showing the memory hierarchy hit rates, provides further evidence of this strategy. Relating this data back to the roofline analysis:
+* The result matrix tiles are pinned in L2 and flushed back to HBM only once their final values are computed. This is supported by the 100% L2 store hit rate, and the absence of superfluous store traffic to HBM compared to roofline expectations.
+* The high L2 load hit rate indicates that although input tiles are fetched multiple times, each tile is extensively reused before eviction, amortizing HBM traffic.
+![](/images/hbm-part3-hit-rates.png "Hit Rate")
+
+This analysis highlights two crucial architectural points:
+1. Matrices are effectively blocked with the L2 cache capacity in mind.
+2. This tiling strategy produces a highly skewed HBM read-to-write ratio of ~95:5%. This observation could provide valuable insights for memory architects seeking to optimize future designs.
+
+Finally, the L1 hit rates reveal some non-intuitive patterns that require deeper investigation. These patterns likely reflect a complex interaction between warp scheduling, register pressure, and shared memory usage during GEMM execution.
