@@ -117,6 +117,27 @@ Differences between the approaches employed by cuBLAS for the A100 and H200 is r
 * Asynchronous Memory Copy: A crucial distinction is the use of memcpy_async. The H200 utilizes this asynchronous memory copy operation, while the A100 does not.
 * Tiling Strategy in Shared Memory: A100 uses conventional load instructions through L1 whereas H200 uses a hybrid approach — cuda::memcpy_async + conventional L1 loads.
 
-![](/images/hbm-part3-memchart.png "Memory Chart")
+![](/images/hbm-part3-mem-chart.png "Memory Chart")
 
 The last factor impacting performance is the "tail effect" we touched on previously. For instance, in the Skinny-Prime case on H200, this effect manifests clearly—resulting in reduced compute utilization, since the last partial wave of thread blocks underutilizes available SMs.
+
+## Bottom Line
+For large dense GEMM kernels, the limiting factor is not memory bandwidth but compute throughput. HBM contributes only marginally (5–10% utilization), with most of the heavy lifting handled by L2 cache reuse and smart tiling strategies. This explains why GEMM can sustain such high arithmetic intensity — data transfers from HBM are efficiently overlapped with computation so the math pipelines stay busy.
+
+The H200 improves raw performance significantly over the A100, but it still falls short of the full theoretical gain. The gap highlights that algorithm–architecture alignment (e.g., how cuBLAS uses cuda::memcpy_async and how tiles map to cache hierarchies) is just as important as raw FLOPs or HBM bandwidth. This efficiency drop illustrates why top AI labs (e.g., OpenAI, DeepSeek) often develop their own optimized GEMM kernels instead of relying solely on cuBLAS.
+
+For readers new to GPU profiling, the art of performance analysis lies in understanding where the “real bottleneck” is, that means the importance of going beyond peak specs and digging into real execution patterns, not just at the headline FLOPS and HBM bandwidth numbers.
+
+## Complete Profile Data
+Following commands used to generate the Gemm performance charts:
+./sample_cublasLt_LtSgemm [M] [N] [K] 0
+
+Following command is used to generate the NSight profile for a GEMM:
+sudo ncu --set full -o [profile-name] ./sample_cublasLt_LtSgemm [M] [N] [K] 1
+
+## Resources to explore
+[Fast CUDA SGEMM from Scratch](https://siboehm.com/articles/22/CUDA-MMM)
+[cuBLAS](https://developer.nvidia.com/cublas)
+[CUTLASS](https://docs.nvidia.com/cutlass/index.html)
+[openAI-GEMM](https://github.com/openai/openai-gemm)
+[DeepSeek-GEMM](https://github.com/deepseek-ai/DeepGEMM)
