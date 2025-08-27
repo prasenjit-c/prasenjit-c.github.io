@@ -243,8 +243,8 @@ It would be intersting if you can try the experiment on H100 and observe how the
 [GTC2025](https://www.nvidia.com/en-us/on-demand/session/gtc25-s72683/)<br>
 
 #### NVIDIA NSight Compute
-[Videos](https://developer.nvidia.com/nsight-compute-videos)
+[Videos](https://developer.nvidia.com/nsight-compute-videos)<br>
 [GTC2025](https://www.nvidia.com/en-us/on-demand/session/gtc25-dlit71640/)<br>
-[Blogs](https://developer.nvidia.com/nsight-compute-blogs)
-[Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#)
+[Blogs](https://developer.nvidia.com/nsight-compute-blogs)<br>
+[Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#)<br>
 [Hands-On](https://github.com/NVIDIA/nsight-training.git)
