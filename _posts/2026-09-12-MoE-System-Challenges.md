@@ -16,19 +16,49 @@ What makes MoE a boon for model designers, however, is precisely what turns it i
 * f – static capacity factor (padding or dropping tokens per expert)
 
 * D - Transformer hidden dimension
-* n - Expern FFN dimension
+* n - Expert FFN dimension
 
 The standard MoE computation for an expert ‘e’ with SwiGLU activation can be broken down into the following components:
 * Input: Xe[Te x D]
-* UpProjection He: Xe[Te x D] x W1e[D x 2n] -> [Te x 2n] -> [Ge | Ue]
+* UpProjection He: Xe[Te x D] x W1e[D x 2n] -> [Te x 2n] -> [Ge, Ue]
 * Activation Ae: SwiGLU(He) -> SiLU(Ge) x Ue -> [Te x n]
 * DownProjection Ye: Ae[Te x n] x W2e[n x D] -> [Te x D]
 
 * Expert Capacity (C) — Maximum number of token assignments an expert is provisioned to process in a batch
-* C = k * f * (T/E)
+    * C = k * f * (T/E)
 * Expert Granularity (G) — Measures how small an individual expert is relative to the Transformer hidden dimension
-* G = D / n
-* Higher means smaller, finer-grained experts
+    * G = D / n
+    * Higher means smaller, finer-grained experts
 * MoE Sparsity (s) — Fraction of the available experts activated for each token
-* s = E / K
-* Higher s means a sparser MoE
+    * s = E / K
+    * Higher s means a sparser MoE
+
+# System-Level Challenges of MoE
+
+## Challenge 1 – Sparse and Irregular Computation
+
+MoE reduces computation by activating only a subset of experts for each token. However, this also turns the regular, predictable computation of a dense Transformer into a dynamic and uneven workload. In other words, MoE performs fewer FLOPs, but makes those FLOPs harder for the system to execute efficiently.
+
+* **Dynamic workload:** The number of tokens routed to each expert can vary across layers and training iterations. As a result, the amount of work assigned to an expert is not fixed; studies have observed workload variations of up to 4.38x within a single training run.
+* **Small and irregular GEMMs:** GPUs achieve their highest efficiency on large, regular GEMMs. In MoE, different experts may receive very different numbers of tokens, resulting in small and uneven GEMMs that are harder to map efficiently onto the hardware.
+* **Fewer FLOPs do not necessarily mean higher hardware utilization:** Expert computation requires tokens to be gathered from different positions before the GEMM and the results to be scattered back afterward. These dynamic memory accesses introduce additional data movement that does not exist to the same extent in regular dense computation.
+* **Increasing granularity and sparsity make the problem harder:** Modern MoEs are moving toward more fine-grained experts, where each expert has a smaller intermediate dimension, and greater sparsity, where the total number of experts increases while the number activated per token remains relatively small. Both trends reduce the amount of useful computation performed by an individual expert and make efficient GPU execution increasingly difficult.
+* **Changing execution requirements:** Because the workload varies across experts, layers, and iterations, the system must continually deal with two fundamental questions:
+    * What is the most efficient parallelization strategy for the current expert workload?
+    * How can high GEMM efficiency be maintained despite small and uneven expert batch sizes?
+ 
+| Model | Release Date | Parameters | Expert Sparsity (E/K) | Expert Granularity (d/n) |
+|---|---:|---:|---:|---:|
+| Mixtral 8x22B | 11/23 | 131B | 8/2 = 4.0 | 6144/16384 = 0.38 |
+| DBRX | 03/24 | 132B | 16/4 = 4.0 | 6144/10752 = 0.57 |
+| Phi-3.5-MoE | 09/24 | 42B | 16/2 = 8.0 | 4096/6400 = 0.64 |
+| OLMoE | 09/24 | 7B | 64/8 = 8.0 | 2048/1024 = 2.00 |
+| Granite 3.1-MoE | 12/24 | 3B | 40/8 = 5.0 | 1536/512 = 3.00 |
+| DeepSeek-V3 | 12/24 | 671B | 256/8 = 32.0 | 7168/2048 = 3.50 |
+| Qwen3 MoE | 04/25 | 235B | 128/8 = 16.0 | 4096/1536 = 2.67 |
+| Qwen3-30B-A3B | 05/25 | 30.5B | 128/8 = 16.0 | 2048/768 = 2.67 |
+| Kimi K2 | 07/25 | 1.04T | 384/8 = 48.0 | 7168/2048 = 3.50 |
+| gpt-oss-120b | 08/25 | 120B | 128/4 = 32.0 | 2880/2880 = 1.00 |
+| GLM-4.5-Air | 08/25 | 106B | 128/8 = 16.0 | 4096/1408 = 2.91 |
+| Qwen3-Next-80B-A3B-Instruct | 09/25 | 81B | 512/10 = 51.2 | 2048/512 = 4.00 |
+| DeepSeek-V3.2-Exp | 10/25 | 685B | 256/8 = 32.0 | 7168/2048 = 3.50 |
