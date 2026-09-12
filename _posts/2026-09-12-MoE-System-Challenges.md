@@ -80,6 +80,7 @@ Expert parallelism requires tokens to be exchanged across GPUs before expert com
 * **Communication grows with the number of activated experts:** Increasing Top-(K) sends each token to more experts and therefore increases the amount of data transferred. In reported experiments, A2A time increased from 33.4% to 44.5% of the step time as the communication volume increased.
     * **Training** – contention with gradient communication: During backward propagation, expert-parallel A2A can execute concurrently with data-parallel AllReduce operations. Because these independent communication streams share the same network resources, background AllReduce traffic can reduce the bandwidth available to the blocking A2A and directly increase training time.
     * **Inference** – skewed expert popularity: During inference, routing is determined by the input workload and can be highly uneven. Some experts receive significantly more tokens than others, causing the GPUs hosting popular experts to experience both heavier communication traffic and more computation. These GPUs become stragglers, increasing the latency of the entire MoE layer.
+
 | # Experts / GPUs | Model (#Layers & Params) | Training All-to-All (ms) | Training Ratio | Inference All-to-All (ms) | Inference Ratio |
 |---:|---|---:|---:|---:|---:|
 | 4 | 12L + 117M | 259 | 36.7% | 73 | 27.4% |
@@ -88,3 +89,25 @@ Expert parallelism requires tokens to be exchanged across GPUs before expert com
 | 16 | 12L + 419M | 333 | 39.5% | 102 | 32.5% |
 | 16 | 24L + 838M | 715 | 37.6% | 177 | 31.7% |
 | 16 | 36L + 1.2B | 1145 | 36.8% | 243 | 27.4% |
+
+## Challenge 4 – A2A Dependencies and Limited Communication–Computation Overlap
+
+MoE introduces direct dependencies between All-to-All communication and expert computation: tokens must reach their destination experts before they can be processed, and expert outputs must be communicated back before subsequent computation can proceed. This makes hiding A2A latency fundamentally difficult.
+
+* **Limited opportunities for overlap:** Some computation can proceed concurrently with A2A—for example, suitably partitioned non-MoE computation in the forward pass and independent weight-gradient computation during backward—but much of the MoE execution remains directly dependent on communication.
+* **Partitioning hurts compute efficiency:** Increasing overlap generally requires expert computation to be divided into smaller chunks. As these chunks become smaller, GEMMs become less efficient and may underutilize GPU compute resources.
+* **Unavoidable communication bubbles:** Coarse-grained pipelining still leaves exposed communication at the beginning, while data is first being received, and at the end, while the final results are being sent. These regions cannot be hidden by expert computation.
+* **Communication and computation operate at different granularities:** Communication becomes useful as routed tokens arrive, while GPUs execute expert GEMMs in tiles. This mismatch makes it difficult to start computation immediately as data becomes available without sacrificing GEMM efficiency.
+* **Dynamic workloads complicate resource sharing:** The number of tokens assigned to each expert varies at runtime. Consequently, the optimal balance of GPU resources devoted to communication and computation also changes dynamically.
+* **Cluster topology can introduce redundant traffic:** A token routed to multiple experts located on different GPUs of the same remote node may be transmitted multiple times across the slower inter-node fabric. Thus, logical expert-level communication can translate into unnecessary physical network traffic.
+
+## Challenge 5 – Large-Scale MoE Inference Serving
+
+MoE inference combines two very different workloads—attention and expert FFNs—whose optimal hardware and scaling requirements often conflict.
+
+* **Conflicting resource requirements:** During decode, attention is largely memory-intensive because every new token must access its request-specific KV cache. In contrast, MoE FFNs require sufficiently large token batches to achieve good weight reuse and GPU utilization.
+* **Batch size is constrained by attention:** The maximum serving batch is often limited by KV-cache capacity and latency SLAs. This can leave too few tokens per expert for efficient FFN execution, especially as the number of experts increases.
+* **Coupled scaling leads to poor utilization:** When attention and FFN share the same serving instance, they must scale together even though their compute, memory, and bandwidth requirements differ. A configuration that is efficient for one may be inefficient for the other.
+* **Disaggregation introduces a new communication problem:** Separating attention and FFN resources allows them to scale independently and potentially use different hardware, but hidden states must then move between the two pools at every MoE layer.
+* **Communication must be hidden to avoid idle resources:** Because attention and FFN remain sequentially dependent, either side can sit idle while waiting for data. Efficient serving therefore requires enough concurrent work to cover these communication and dependency gaps.
+* **Independent scaling creates irregular M-to-N communication:** Different numbers of attention and FFN workers naturally produce  and  traffic patterns, which are more complex than conventional fixed-size collective communication.
