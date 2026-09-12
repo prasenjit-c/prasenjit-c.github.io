@@ -110,4 +110,6 @@ MoE inference combines two very different workloadsâ€”attention and expert FFNsâ
 * **Coupled scaling leads to poor utilization:** When attention and FFN share the same serving instance, they must scale together even though their compute, memory, and bandwidth requirements differ. A configuration that is efficient for one may be inefficient for the other.
 * **Disaggregation introduces a new communication problem:** Separating attention and FFN resources allows them to scale independently and potentially use different hardware, but hidden states must then move between the two pools at every MoE layer.
 * **Communication must be hidden to avoid idle resources:** Because attention and FFN remain sequentially dependent, either side can sit idle while waiting for data. Efficient serving therefore requires enough concurrent work to cover these communication and dependency gaps.
+
+As a system architect, these challenges are part of what makes ML so exciting. The rapid evolution keeps throwing new challenges for system design, with plenty of interesting problems for everyone working across the stack.
 * **Independent scaling creates irregular M-to-N communication:** Different numbers of attention and FFN workers naturally produce  and  traffic patterns, which are more complex than conventional fixed-size collective communication.
