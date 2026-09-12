@@ -113,3 +113,19 @@ MoE inference combines two very different workloads—attention and expert FFNs�
 * **Independent scaling creates irregular M-to-N communication:** Different numbers of attention and FFN workers naturally produce  and  traffic patterns, which are more complex than conventional fixed-size collective communication.
 
 As a system architect, these challenges are part of what makes ML so exciting. The rapid evolution keeps throwing new challenges for system design, with plenty of interesting problems for everyone working across the stack.
+
+# References
+* Tutel: Adaptive Mixture-of-Experts at Scale — MLSys 2023 
+* MegaBlocks: Efficient Sparse Training with Mixture-of-Experts — MLSys 2023 
+* SonicMoE: Accelerating MoE with IO and Tile-aware Optimizations — ICLR 2026
+* MoEBlaze: Breaking the Memory Wall for Efficient MoE Training on Modern GPUs — MLSys 2026
+* Accelerating Distributed MoE Training and Inference with Lina — USENIX ATC 2023
+* Lancet: Accelerating Mixture-of-Experts Training via Whole Graph Computation-Communication Overlapping— MLSys 2024
+* Comet: Fine-grained Computation-communication Overlapping for Mixture-of-Experts — MLSys 2025
+* fabric-lib: RDMA Point-to-Point Communication for LLM Systems — MLSys 2026
+* FarSkip-Collective: Unhobbling Blocking Communication in Mixture of Experts Models — MLSys 2026
+* X-MoE: Enabling Scalable Training for Emerging Mixture-of-Experts Architectures on HPC Platforms — SC 2025
+* SYMI: Efficient Mixture-of-Experts Training via Model and Optimizer State Decoupling — NSDI 2026
+* MegaScale-Infer: Efficient Mixture-of-Experts Model Serving with Disaggregated Expert Parallelism — ACM SIGCOMM 2025
+* Revealing the Challenges of Attention-FFN Disaggregation for Modern MoE Models and Hardware Systems — arXiv:2602.09721, 2026
+* From Tokens to Layers: Redefining Stall-Free Scheduling for MoE Serving with Layered Prefill — MLSys 2026
