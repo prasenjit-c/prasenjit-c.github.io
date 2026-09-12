@@ -19,17 +19,17 @@ What makes MoE a boon for model designers, however, is precisely what turns it i
 * n - Expert FFN dimension
 
 The standard MoE computation for an expert ‘e’ with SwiGLU activation can be broken down into the following components:
-* Input: Xe[Te x D]
-* UpProjection He: Xe[Te x D] x W1e[D x 2n] -> [Te x 2n] -> [Ge, Ue]
-* Activation Ae: SwiGLU(He) -> SiLU(Ge) x Ue -> [Te x n]
-* DownProjection Ye: Ae[Te x n] x W2e[n x D] -> [Te x D]
+* ***Input:*** Xe[Te x D]
+* ***UpProjection He:*** Xe[Te x D] x W1e[D x 2n] -> [Te x 2n] -> [Ge, Ue]
+* ***Activation Ae:*** SwiGLU(He) -> SiLU(Ge) x Ue -> [Te x n]
+* ***DownProjection Ye:*** Ae[Te x n] x W2e[n x D] -> [Te x D]
 
-* Expert Capacity (C) — Maximum number of token assignments an expert is provisioned to process in a batch
+* **Expert Capacity (C)** — Maximum number of token assignments an expert is provisioned to process in a batch
     * C = k * f * (T/E)
-* Expert Granularity (G) — Measures how small an individual expert is relative to the Transformer hidden dimension
+* **Expert Granularity (G)** — Measures how small an individual expert is relative to the Transformer hidden dimension
     * G = D / n
     * Higher means smaller, finer-grained experts
-* MoE Sparsity (s) — Fraction of the available experts activated for each token
+* **MoE Sparsity (s)** — Fraction of the available experts activated for each token
     * s = E / K
     * Higher s means a sparser MoE
 
@@ -72,3 +72,19 @@ As MoEs become more fine-grained and sparse, the amount of useful computation pe
     * AI ~ 1 / (G + s)
 * **Tile-level inefficiency:** Highly sparse MoEs often leave only a small number of tokens per expert. Grouped GEMMs must still execute at hardware tile granularity, causing partially utilized tiles and wasted computation.
 
+## Challenge 3 – All-to-All Communication Bottlenecks
+
+Expert parallelism requires tokens to be exchanged across GPUs before expert computation and returned afterward. This makes All-to-All (A2A) communication a major part of MoE execution time; reported measurements show it consuming about 34.1% of a training step on average. Although A2A is a bottleneck in both training and inference, the underlying causes are different.
+
+* **Low GPU utilization during communication:** A2A is largely a data-movement phase, leaving much of the GPU compute capability idle. Reported average SM efficiency during A2A is only 3.7%.
+* **Communication grows with the number of activated experts:** Increasing Top-(K) sends each token to more experts and therefore increases the amount of data transferred. In reported experiments, A2A time increased from 33.4% to 44.5% of the step time as the communication volume increased.
+    * **Training** – contention with gradient communication: During backward propagation, expert-parallel A2A can execute concurrently with data-parallel AllReduce operations. Because these independent communication streams share the same network resources, background AllReduce traffic can reduce the bandwidth available to the blocking A2A and directly increase training time.
+    * **Inference** – skewed expert popularity: During inference, routing is determined by the input workload and can be highly uneven. Some experts receive significantly more tokens than others, causing the GPUs hosting popular experts to experience both heavier communication traffic and more computation. These GPUs become stragglers, increasing the latency of the entire MoE layer.
+| # Experts / GPUs | Model (#Layers & Params) | Training All-to-All (ms) | Training Ratio | Inference All-to-All (ms) | Inference Ratio |
+|---:|---|---:|---:|---:|---:|
+| 4 | 12L + 117M | 259 | 36.7% | 73 | 27.4% |
+| 4 | 24L + 233M | 589 | 35.4% | 103 | 26.2% |
+| 4 | 36L + 349M | 979 | 38.2% | 153 | 28.3% |
+| 16 | 12L + 419M | 333 | 39.5% | 102 | 32.5% |
+| 16 | 24L + 838M | 715 | 37.6% | 177 | 31.7% |
+| 16 | 36L + 1.2B | 1145 | 36.8% | 243 | 27.4% |
