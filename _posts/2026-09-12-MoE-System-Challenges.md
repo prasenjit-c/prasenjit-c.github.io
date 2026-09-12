@@ -47,7 +47,7 @@ MoE reduces computation by activating only a subset of experts for each token. H
     * What is the most efficient parallelization strategy for the current expert workload?
     * How can high GEMM efficiency be maintained despite small and uneven expert batch sizes?
  
-| Model | Release Date | Parameters | Expert Sparsity (E/K) | Expert Granularity (d/n) |
+| Model | Release Date | Parameters | Expert Sparsity (E/K) | Expert Granularity (D/n) |
 |---|---:|---:|---:|---:|
 | Mixtral 8x22B | 11/23 | 131B | 8/2 = 4.0 | 6144/16384 = 0.38 |
 | DBRX | 03/24 | 132B | 16/4 = 4.0 | 6144/10752 = 0.57 |
@@ -62,3 +62,13 @@ MoE reduces computation by activating only a subset of experts for each token. H
 | GLM-4.5-Air | 08/25 | 106B | 128/8 = 16.0 | 4096/1408 = 2.91 |
 | Qwen3-Next-80B-A3B-Instruct | 09/25 | 81B | 512/10 = 51.2 | 2048/512 = 4.00 |
 | DeepSeek-V3.2-Exp | 10/25 | 685B | 256/8 = 32.0 | 7168/2048 = 3.50 |
+
+## Challenge 2 – Memory Pressure and Bandwidth-Bound Execution
+
+As MoEs become more fine-grained and sparse, the amount of useful computation performed by each expert decreases while memory and data-movement overheads do not shrink proportionally. This increasingly pushes MoE execution toward memory-capacity and memory-bandwidth limits.
+
+* **Larger activation footprint:** In fine-grained MoEs, more experts are typically activated per token, and activation storage often grows roughly with the top-, increasing training memory requirements.
+* **Lower arithmetic intensity:** Smaller experts perform less computation for the amount of weights and activation data that must be moved, reducing FLOPs per byte and making execution increasingly bandwidth-bound.
+    * AI ~ 1 / (G + s)
+* **Tile-level inefficiency:** Highly sparse MoEs often leave only a small number of tokens per expert. Grouped GEMMs must still execute at hardware tile granularity, causing partially utilized tiles and wasted computation.
+
